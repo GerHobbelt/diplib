@@ -54,7 +54,7 @@
 /// it is considered best practice to not export such classes. The Windows run-time linker always
 /// maps local classes to those in the shared library, even when they are not exported.
 
-#ifdef DIP_CONFIG_DIP_IS_STATIC
+#if defined( DIP_CONFIG_DIP_IS_STATIC ) || defined(BUILD_MONOLITHIC)
 #   define DIP_EXPORT
 #   define DIP_NO_EXPORT
 #   define DIP_CLASS_EXPORT

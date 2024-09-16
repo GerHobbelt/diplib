@@ -32,7 +32,7 @@
 /// \brief Specifically for classes in a inheritance hierarchy and that must be passed across the
 /// executable/shared library interface. See \ref DIP_CLASS_EXPORT for more details.
 
-#ifdef DIP_CONFIG_DIPVIEWER_IS_STATIC
+#if defined( DIP_CONFIG_DIPVIEWER_IS_STATIC ) || defined(BUILD_MONOLITHIC)
 #   define DIPVIEWER_EXPORT
 #   define DIPVIEWER_NO_EXPORT
 #   define DIPVIEWER_CLASS_EXPORT

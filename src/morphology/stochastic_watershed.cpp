@@ -1,6 +1,6 @@
 /*
- * (c)2013, Filip Malmberg.
- * (c)2019, Cris Luengo.
+ * (c)2017-2022, Cris Luengo.
+ * Based on Exact stochastic watershed code: (c)2013, Filip Malmberg.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,169 +15,26 @@
  * limitations under the License.
  */
 
-#include "diplib/graph.h"
+#include "diplib/morphology.h"
 
 #include <algorithm>
 #include <cmath>
-#include <cstdlib>
 #include <limits>
 #include <memory>
-#include <queue>
 #include <stack>
+#include <utility>
 #include <vector>
 
 #include "diplib.h"
 #include "diplib/framework.h"
-#include "diplib/overload.h"
-
+#include "diplib/generation.h"
+#include "diplib/graph.h"
+#include "diplib/linear.h"
+#include "diplib/math.h"
+#include "diplib/random.h"
+#include "diplib/union_find.h"
 
 namespace dip {
-
-namespace {
-
-template< typename TPI >
-class CreateGraphLineFilter : public Framework::ScanLineFilter {
-   public:
-      CreateGraphLineFilter( Graph& graph, UnsignedArray const& sizes, IntegerArray const& strides, bool useDifferences )
-            : graph_( graph ), sizes_( sizes ), strides_( strides ), useDifferences_( useDifferences ) {}
-      void Filter( Framework::ScanLineFilterParameters const& params ) override {
-         TPI const* in = static_cast< TPI const* >( params.inBuffer[ 0 ].buffer );
-         dip::sint stride = params.inBuffer[ 0 ].stride;
-         dip::uint length = params.bufferLength - 1;
-         dip::uint dim = params.dimension;
-         dip::uint nDims = sizes_.size();
-         DIP_ASSERT( params.position.size() == nDims );
-         DIP_ASSERT( strides_[ dim ] == stride );
-         dip::uint index = Image::Index( params.position, sizes_ );
-         UnsignedArray indexStrides( nDims );
-         indexStrides[ 0 ] = 1;
-         for( dip::uint jj = 1; jj < nDims; ++jj ) {
-            indexStrides[ jj ] = indexStrides[ jj - 1 ] * sizes_[ jj - 1 ];
-         }
-         BooleanArray process( nDims, true );
-         for( dip::uint jj = 0; jj < nDims; ++jj ) {
-            process[ jj ] = params.position[ jj ] < ( sizes_[ jj ] - 1 );
-         }
-         for( dip::uint ii = 0; ii < length; ++ii, index += indexStrides[ dim ], in += stride ) {
-            // Add to graph_ links to each of the *forward* neighbors (i.e. those that you can reach by incrementing
-            // one of the coordinates). The other neighbors are already linked to when those neighbors were processed
-            dfloat value = static_cast< dfloat >( in[ 0 ] );
-            graph_.VertexValue( index ) = value;
-            for( dip::uint jj = 0; jj < nDims; ++jj ) {
-               if( process[ jj ] ) {
-                  dip::uint neighborIndex = index + indexStrides[ jj ];
-                  dfloat neighborValue = static_cast< dfloat >( in[ strides_[ jj ]] );
-                  dfloat weight = useDifferences_ ? std::abs( value - neighborValue ) : ( value + neighborValue ) / 2;
-                  graph_.AddEdgeNoCheck( index, neighborIndex, weight );
-               }
-            }
-         }
-         process[ dim ] = false;
-         dfloat value = static_cast< dfloat >( in[ 0 ] );
-         graph_.VertexValue( index ) = value;
-         for( dip::uint jj = 0; jj < nDims; ++jj ) {
-            if( process[ jj ] ) {
-               dip::uint neighborIndex = index + indexStrides[ jj ];
-               dfloat neighborValue = static_cast< dfloat >( in[ strides_[ jj ]] );
-               dfloat weight = useDifferences_ ? std::abs( value - neighborValue ) : ( value + neighborValue ) / 2;
-               graph_.AddEdgeNoCheck( index, neighborIndex, weight );
-            }
-         }
-      }
-   private:
-      Graph& graph_;
-      UnsignedArray const& sizes_;
-      IntegerArray const& strides_;
-      bool useDifferences_;
-};
-
-} // namespace
-
-Graph::Graph( Image const& image, dip::uint connectivity, String const& weights )
-      : Graph( image.NumberOfPixels(), 2 * image.Dimensionality() ) {
-   DIP_THROW_IF( !image.IsForged(), E::IMAGE_NOT_FORGED );
-   DIP_THROW_IF( !image.IsScalar(), E::IMAGE_NOT_SCALAR );
-   DIP_THROW_IF( !image.DataType().IsReal(), E::DATA_TYPE_NOT_SUPPORTED );
-   DIP_THROW_IF( image.Dimensionality() < 1, E::DIMENSIONALITY_NOT_SUPPORTED );
-   DIP_THROW_IF( connectivity != 1, E::NOT_IMPLEMENTED );
-   bool useDifferences{};
-   DIP_STACK_TRACE_THIS( useDifferences = BooleanFromString( weights, "difference", "average" ));
-   std::unique_ptr< Framework::ScanLineFilter > lineFilter;
-   DIP_OVL_NEW_REAL( lineFilter, CreateGraphLineFilter, ( *this, image.Sizes(), image.Strides(), useDifferences ), image.DataType() );
-   DIP_STACK_TRACE_THIS( Framework::ScanSingleInput( image, {}, image.DataType(), *lineFilter,
-         Framework::ScanOption::NoMultiThreading + Framework::ScanOption::NeedCoordinates ));
-}
-
-Graph Graph::MinimumSpanningForest( std::vector< dip::uint > const& roots ) const {
-#ifdef DIP_CONFIG_ENABLE_ASSERT
-   for( auto r : roots ) {
-      DIP_ASSERT( r < NumberOfVertices() );
-   }
-#endif
-   Graph msf( NumberOfVertices() );
-   for( dip::uint ii = 0; ii < NumberOfVertices(); ++ii ) {
-      msf.vertices_[ ii ].value = vertices_[ ii ].value;
-   }
-   std::vector< bool > visited( NumberOfVertices(), false );
-   auto Comparator = [ & ]( EdgeIndex lhs, EdgeIndex rhs ){ return edges_[ lhs ].weight > edges_[ rhs ].weight; }; // NOTE! inverted order to give higher priority to lower weights
-   std::priority_queue< EdgeIndex, std::vector< EdgeIndex >, decltype( Comparator ) > queue( Comparator );
-   if( roots.empty() ) {
-      visited[ 0 ] = true;
-      for( auto index : vertices_[ 0 ].edges ) {
-         queue.push( index );
-      }
-   } else {
-      for( auto q : roots ) {
-         if( !visited[ q ] ) {
-            visited[ q ] = true;
-            for( auto index : vertices_[ q ].edges ) {
-               queue.push( index );
-            }
-         }
-      }
-   }
-   while( !queue.empty() ) {
-      EdgeIndex edgeIndex = queue.top();
-      queue.pop();
-      VertexIndex q = edges_[ edgeIndex ].vertices[ 0 ];
-      if( visited[ q ] ) {
-         q = edges_[ edgeIndex ].vertices[ 1 ]; // try the other end then
-      }
-      if( !visited[ q ] ) {
-         visited[ q ] = true;
-         msf.AddEdgeNoCheck( edges_[ edgeIndex ] );
-         for( auto index : vertices_[ q ].edges ) {
-            queue.push( index );
-         }
-      }
-   }
-   return msf;
-}
-
-void Graph::RemoveLargestEdges( dip::uint number ) {
-   if( number == 0 ) {
-      // Nothing to do
-      return;
-   }
-   // Generate list of valid edges
-   std::vector< EdgeIndex > indices;
-   indices.reserve( edges_.size() );
-   for( EdgeIndex ii = 0; ii < edges_.size(); ++ii ) {
-      if( edges_[ ii ].IsValid() ) {
-         indices.push_back( ii );
-      }
-   }
-   // Sort indices to edges, largest first
-   number = std::min( number, indices.size() ); // If number is too large, we will delete all edges.
-   dip::sint element = static_cast< dip::sint >( number ) - 1;
-   std::nth_element( indices.begin(), indices.begin() + element, indices.end(), [ this ]( EdgeIndex lhs, EdgeIndex rhs ){
-      return edges_[ lhs ].weight > edges_[ rhs ].weight;
-   } );
-   // Delete largest edges
-   for( dip::uint ii = 0; ii < number; ++ii ) {
-      DeleteEdge( indices[ ii ] );
-   }
-}
 
 namespace {
 
@@ -186,6 +43,11 @@ class Matrix {
    public:
       Matrix() = default;
       Matrix( dip::uint xSize, dip::uint ySize, T value = {} ) : m_( xSize * ySize, value ), xSize_( xSize ), ySize_( ySize ) {}
+      Matrix( Matrix&& ) = default;
+      Matrix& operator=( Matrix&& ) = default;
+      Matrix( Matrix const& ) = default;
+      Matrix& operator=( Matrix const& ) = default;
+      ~Matrix() = default;
 
       T& at( dip::uint x, dip::uint y ) {
          DIP_ASSERT( x < xSize_ );
@@ -199,7 +61,7 @@ class Matrix {
       }
 
    private:
-      std::vector< T > m_;
+      std::vector< T > m_{};
       dip::uint xSize_ = 0;
       dip::uint ySize_ = 0;
 };
@@ -209,6 +71,11 @@ class SymmetricMatrix {
    public:
       SymmetricMatrix() = default;
       SymmetricMatrix( dip::uint size, T value = {} ) : m_( size * ( size + 1 ) / 2, value ), size_( size ) {}
+      SymmetricMatrix( SymmetricMatrix&& ) = default;
+      SymmetricMatrix& operator=( SymmetricMatrix&& ) = default;
+      SymmetricMatrix( SymmetricMatrix const& ) = default;
+      SymmetricMatrix& operator=( SymmetricMatrix const& ) = default;
+      ~SymmetricMatrix() = default;
 
       T& at( dip::uint x, dip::uint y ) {
          if( y < x ) {
@@ -226,7 +93,7 @@ class SymmetricMatrix {
       }
 
    private:
-      std::vector< T > m_;
+      std::vector< T > m_{};
       dip::uint size_ = 0;
 };
 
@@ -262,6 +129,11 @@ class SparseTable {
             }
          }
       }
+      SparseTable( SparseTable&& ) = default;
+      SparseTable& operator=( SparseTable&& ) = default;
+      SparseTable( SparseTable const& ) = default;
+      SparseTable& operator=( SparseTable const& ) = default;
+      ~SparseTable() = default;
 
       dip::uint at( dip::uint x, dip::uint y ) const {
          return sparseMatrix_.at( x, y );
@@ -281,17 +153,16 @@ class SparseTable {
       }
 
    private:
-      std::vector< T > sequence_;
-      Matrix< dip::uint > sparseMatrix_;
+      std::vector< T > sequence_{};
+      Matrix< dip::uint > sparseMatrix_{};
 };
 
 template< typename T >
 class LookUpTable {
    public:
       LookUpTable() = default;
-      LookUpTable( std::vector< T > sequence ) {
-         DIP_ASSERT( !sequence.empty() );
-         sequence_ = std::move( sequence );
+      LookUpTable( std::vector< T > sequence ) : sequence_( std::move( sequence )) {
+         DIP_ASSERT( !sequence_.empty() );
          // Normalize sequence
          T minVal = *min_element( sequence_.begin(), sequence_.end() );
          for( auto& s : sequence_ ) {
@@ -316,6 +187,12 @@ class LookUpTable {
             }
          }
       }
+      LookUpTable( LookUpTable&& ) = default;
+      LookUpTable& operator=( LookUpTable&& ) = default;
+      LookUpTable( LookUpTable const& ) = default;
+      LookUpTable& operator=( LookUpTable const& ) = default;
+      ~LookUpTable() = default;
+
       bool isInitialized() const {
          return !sequence_.empty();
       }
@@ -325,18 +202,21 @@ class LookUpTable {
       }
 
    private:
-      std::vector< T > sequence_;
-      SymmetricMatrix< dip::uint > table_;
-      SparseTable< T > sparseTable_;
+      std::vector< T > sequence_{};
+      SymmetricMatrix< dip::uint > table_{};
+      SparseTable< T > sparseTable_{};
 };
 
 class Block {
    public:
-      LookUpTable< dip::uint > lut;
-
       Block() = default;
       Block( LookUpTable< dip::uint > lut, dip::uint sequenceLength, dip::uint firstIndex )
          : lut( std::move( lut ) ), lastIndex_internal_( sequenceLength - 1 ), firstIndex_external_( firstIndex ) {}
+      Block( Block&& ) = default;
+      Block& operator=( Block&& ) = default;
+      Block( Block const& ) = default;
+      Block& operator=( Block const& ) = default;
+      ~Block() = default;
 
       dip::uint getIndexOfMinVal() const {
          return firstIndex_external_ + lut.getEntry( 0, lastIndex_internal_ );
@@ -352,11 +232,10 @@ class Block {
       }
 
    private:
+      LookUpTable< dip::uint > lut{};
       dip::uint lastIndex_internal_ = 0;
       dip::uint firstIndex_external_ = 0;
 };
-
-} // namespace
 
 class RangeMinimumQuery {
    public:
@@ -369,6 +248,11 @@ class RangeMinimumQuery {
          createBlocks();
          createSparseTableForBlockMinima();
       }
+      RangeMinimumQuery( RangeMinimumQuery&& ) = default;
+      RangeMinimumQuery& operator=( RangeMinimumQuery&& ) = default;
+      RangeMinimumQuery( RangeMinimumQuery const& ) = default;
+      RangeMinimumQuery& operator=( RangeMinimumQuery const& ) = default;
+      ~RangeMinimumQuery() = default;
 
       dip::uint getIndexOfMinimum( dip::uint p1, dip::uint p2 ) const {
          if( p1 > p2 ) {
@@ -469,6 +353,35 @@ class RangeMinimumQuery {
       }
 };
 
+/// \brief Solves the lowest common ancestor problem for a tree.
+class LowestCommonAncestorSolver {
+   public:
+   /// \brief The constructor takes a `graph`, which must not have any cycles in it (it must be a tree). The
+   /// easiest way to turn an arbitrary graph into a tree is to compute the MST (see \ref dip::Graph::MinimumSpanningForest).
+   LowestCommonAncestorSolver( Graph const& graph );
+   LowestCommonAncestorSolver( LowestCommonAncestorSolver&& ) = default;
+   LowestCommonAncestorSolver& operator=( LowestCommonAncestorSolver&& ) = default;
+   // Prevent copying, that might go wrong because we use a shared pointer, `rmq_` might be shared...
+   LowestCommonAncestorSolver( LowestCommonAncestorSolver const& ) = delete;
+   LowestCommonAncestorSolver& operator=( LowestCommonAncestorSolver const& ) = delete;
+   ~LowestCommonAncestorSolver() = default;
+
+   /// \brief Returns the vertex that is the nearest common ancestor to vertices `a` and `b`.
+   dip::uint GetLCA( dip::uint a, dip::uint b ) const;
+
+   /// \brief Returns the value associated to the vertex `index`. TODO: describe this value!
+   dfloat GetLogF( dip::uint index ) const {
+      DIP_ASSERT( index < logF_.size() );
+      return logF_[ index ];
+   }
+
+   private:
+   std::vector< dip::uint > tourArray_;
+   std::vector< dip::uint > R_;
+   std::vector< dfloat > logF_;
+   std::shared_ptr< RangeMinimumQuery > rmq_; // Hidden implementation to avoid all that cruft in these headers...
+};
+
 constexpr dip::uint notVisited = std::numeric_limits< dip::uint >::max();
 
 dip::uint LowestCommonAncestorSolver::GetLCA( dip::uint a, dip::uint b ) const {
@@ -517,84 +430,157 @@ LowestCommonAncestorSolver::LowestCommonAncestorSolver( Graph const& graph )
    rmq_ = std::make_shared< RangeMinimumQuery >( std::move( eulerDepth ));
 }
 
-} // namespace dip
 
-#ifdef DIP_CONFIG_ENABLE_DOCTEST
-#include "doctest.h"
-
-DOCTEST_TEST_CASE("[DIPlib] testing dip::Graph") {
-   dip::Image img( { 4, 5 }, 1, dip::DT_UINT8 );
-   img.Fill( 0 );
-   img.At( 0 ) = 10;
-   img.At( 1 ) = 12;
-   img.At( 2 ) = 15;
-
-   // Test graph creation
-   dip::Graph graph( img, 1, "difference" );
-   DOCTEST_REQUIRE( graph.NumberOfVertices() == 20 );
-   DOCTEST_REQUIRE( graph.Edges().size() == 16 + 15 ); // 4*4 vertical edges + 3*5 horizontal edges
-   auto const& edges = graph.Edges();
-   // Check 1st vertex
-   DOCTEST_REQUIRE( graph.EdgeIndices( 0 ).size() == 2 );
-   auto edge1 = edges[ graph.EdgeIndices( 0 )[ 0 ]];
-   auto edge2 = edges[ graph.EdgeIndices( 0 )[ 1 ]];
-   if( edge1.vertices[ 1 ] != 1 ) {
-      std::swap( edge1, edge2 );
-   }
-   DOCTEST_CHECK( edge1.vertices[ 0 ] == 0 );
-   DOCTEST_CHECK( edge1.vertices[ 1 ] == 1 );
-   DOCTEST_CHECK( edge1.weight == 2.0 );
-   DOCTEST_CHECK( edge2.vertices[ 0 ] == 0 );
-   DOCTEST_CHECK( edge2.vertices[ 1 ] == 4 );
-   DOCTEST_CHECK( edge2.weight == 10.0 );
-   // Check 2nd vertex
-   DOCTEST_REQUIRE( graph.EdgeIndices( 1 ).size() == 3 );
-   edge1 = edges[ graph.EdgeIndices( 1 )[ 0 ]];
-   edge2 = edges[ graph.EdgeIndices( 1 )[ 1 ]];
-   auto edge3 = edges[ graph.EdgeIndices( 1 )[ 2 ]];
-   if( edge1.vertices[ 1 ] != 2 ) {
-      std::swap( edge1, edge2 );
-      if( edge1.vertices[ 1 ] != 2 ) {
-         std::swap( edge1, edge3 );
+class ExactSWLineFilter : public Framework::ScanLineFilter {
+   public:
+      dip::uint GetNumberOfOperations( dip::uint /**/, dip::uint /**/, dip::uint /**/ ) override { return 100; } // TODO: this is absolutely a wild guess...
+      void Filter( Framework::ScanLineFilterParameters const& params ) override {
+         sfloat* out = static_cast< sfloat* >( params.outBuffer[ 0 ].buffer );
+         auto stride = params.outBuffer[ 0 ].stride;
+         dip::uint length = params.bufferLength - 1;
+         dip::uint dim = params.dimension;
+         dip::uint nDims = sizes_.size();
+         DIP_ASSERT( params.position.size() == nDims );
+         dip::uint index = Image::Index( params.position, sizes_ );
+         UnsignedArray indexStrides( nDims );
+         indexStrides[ 0 ] = 1;
+         for( dip::uint jj = 1; jj < nDims; ++jj ) {
+            indexStrides[ jj ] = indexStrides[ jj - 1 ] * sizes_[ jj - 1 ];
+         }
+         BooleanArray process( nDims, true );
+         for( dip::uint jj = 0; jj < nDims; ++jj ) {
+            process[ jj ] = params.position[ jj ] < ( sizes_[ jj ] - 1 );
+         }
+         for( dip::uint ii = 0; ii < length; ++ii, index += indexStrides[ dim ], out += stride ) {
+            *out = ComputePixel( index, process, indexStrides, nDims );
+         }
+         process[ dim ] = false; // For the last pixel in the array, we don't have a next.
+         *out = ComputePixel( index, process, indexStrides, nDims );
       }
-   }
-   if( edge2.vertices[ 1 ] != 5 ) {
-      std::swap( edge2, edge3 );
-   }
-   DOCTEST_CHECK( edge1.vertices[ 0 ] == 1 );
-   DOCTEST_CHECK( edge1.vertices[ 1 ] == 2 );
-   DOCTEST_CHECK( edge1.weight == 3.0 );
-   DOCTEST_CHECK( edge2.vertices[ 0 ] == 1 );
-   DOCTEST_CHECK( edge2.vertices[ 1 ] == 5 );
-   DOCTEST_CHECK( edge2.weight == 12.0 );
+      ExactSWLineFilter( LowestCommonAncestorSolver const& lca, UnsignedArray const& sizes ) : lca_( lca ), sizes_( sizes ) {}
+   private:
+      LowestCommonAncestorSolver const& lca_;
+      UnsignedArray const& sizes_;
 
-   // Test MinimumSpanningForest()
-   graph = graph.MinimumSpanningForest();
-   DOCTEST_REQUIRE( graph.Edges().size() == 19 );
-   DOCTEST_REQUIRE( graph.NumberOfVertices() == 20 );
-   auto edges0 = graph.EdgeIndices( 0 ); // Joined to 1 and 4
-   auto edges1 = graph.EdgeIndices( 1 ); // Joined to 0 and 2
-   auto edges2 = graph.EdgeIndices( 2 ); // Joined to 1
-   DOCTEST_REQUIRE( edges0.size() == 2 );
-   DOCTEST_REQUIRE( edges1.size() == 2 );
-   DOCTEST_REQUIRE( edges2.size() == 1 );
-   auto v1 = graph.OtherVertex( edges0[ 0 ], 0 );
-   auto v2 = graph.OtherVertex( edges0[ 1 ], 0 );
-   if( v1 == 1 ) {
-      DOCTEST_CHECK( v2 == 4 );
-   } else {
-      DOCTEST_CHECK( v1 == 4 );
-      DOCTEST_CHECK( v2 == 1 );
+      sfloat ComputePixel( dip::uint index, BooleanArray const& process, UnsignedArray const& indexStrides, dip::uint nDims ) {
+         dfloat logPv = 0.0;
+         for( dip::uint jj = 0; jj < nDims; ++jj ) {
+            if( process[ jj ] ) {
+               dip::uint neighborIndex = index + indexStrides[ jj ];
+               dip::uint rootIndex = lca_.GetLCA( index, neighborIndex );
+               dfloat logFthis = lca_.GetLogF( index );
+               dfloat logFthat = lca_.GetLogF( neighborIndex );
+               dfloat logFroot = lca_.GetLogF( rootIndex );
+               dfloat logOneMinusPe = logFthis + logFthat - 2 * logFroot;
+               logPv = logPv + logOneMinusPe;
+            }
+         }
+         return static_cast< sfloat >( 1.0 - std::exp( logPv ));
+      }
+};
+
+void ExactStochasticWatershed(
+      Image const& in,
+      Image& out,
+      dfloat density
+) {
+   // Calculate minimum spanning tree
+   Graph graph( in, 1, "average" );
+   DIP_STACK_TRACE_THIS( graph = MinimumSpanningForest( graph ));
+
+   // Compute Stochastic Watershed weights
+   {
+      dfloat nSeeds = static_cast< dfloat >( in.NumberOfPixels() ) * density;
+      dip::uint nVertices = graph.NumberOfVertices();
+      DIP_ASSERT( nVertices > 0 );
+      Graph result( nVertices );
+      UnionFind< Graph::VertexIndex, dip::uint, std::plus<> > ds( nVertices, 1, std::plus<>() );
+      auto const& edges = graph.Edges();
+      auto Comparator = [ & ]( Graph::EdgeIndex lhs, Graph::EdgeIndex rhs ) { return edges[ lhs ].weight < edges[ rhs ].weight; };
+      std::vector< Graph::EdgeIndex > edgeIndices( edges.size() );
+      std::iota( edgeIndices.begin(), edgeIndices.end(), 0 );
+      std::sort( edgeIndices.begin(), edgeIndices.end(), Comparator );
+      for( auto index : edgeIndices ) {
+         auto edge = edges[ index ];
+         Graph::VertexIndex p_index = ds.FindRoot( edge.vertices[ 0 ] );
+         Graph::VertexIndex q_index = ds.FindRoot( edge.vertices[ 1 ] );
+         dfloat p_size = static_cast< dfloat >( ds.Value( p_index )) / static_cast< dfloat >( nVertices );
+         dfloat q_size = static_cast< dfloat >( ds.Value( q_index )) / static_cast< dfloat >( nVertices );
+         // Calculate edge weight based on p_size and q_size
+         edge.weight = 1 - std::pow( 1 - p_size, nSeeds ) - std::pow( 1 - q_size, nSeeds ) + std::pow( 1 - ( p_size + q_size ), nSeeds );
+         result.AddEdgeNoCheck( edge );
+         ds.Union( p_index, q_index );
+      }
+      std::swap( graph, result );
    }
-   v1 = graph.OtherVertex( edges1[ 0 ], 1 );
-   v2 = graph.OtherVertex( edges1[ 1 ], 1 );
-   if( v1 == 0 ) {
-      DOCTEST_CHECK( v2 == 2 );
-   } else {
-      DOCTEST_CHECK( v1 == 2 );
-      DOCTEST_CHECK( v2 == 0 );
-   }
-   DOCTEST_CHECK( graph.OtherVertex( edges2[ 0 ], 2 ) == 1 );
+
+   DIP_START_STACK_TRACE
+      // Compute support data
+      LowestCommonAncestorSolver lca( graph );
+      // Calculate boundary probability for all pixels
+      out.ReForge( in.Sizes(), 1, DT_SFLOAT, Option::AcceptDataTypeChange::DONT_ALLOW );
+      ExactSWLineFilter lineFilter( lca, out.Sizes() );
+      Framework::ScanSingleOutput( out, DT_SFLOAT, lineFilter, Framework::ScanOption::NeedCoordinates );
+   DIP_END_STACK_TRACE
 }
 
-#endif // DIP_CONFIG_ENABLE_DOCTEST
+} // namespace
+
+void StochasticWatershed(
+      Image const& c_in,
+      Image& out,
+      Random& random,
+      dip::uint nSeeds,
+      dip::uint nIterations,
+      dfloat noise,
+      String const& seeds
+) {
+   DIP_THROW_IF( !c_in.IsForged(), E::IMAGE_NOT_FORGED );
+   DIP_THROW_IF( !c_in.IsScalar(), E::IMAGE_NOT_SCALAR );
+   DIP_THROW_IF( !c_in.DataType().IsReal(), E::DATA_TYPE_NOT_SUPPORTED );
+   DIP_THROW_IF( c_in.Dimensionality() < 1, E::DIMENSIONALITY_NOT_SUPPORTED );
+   DIP_THROW_IF( nSeeds == 0, E::INVALID_PARAMETER );
+   dfloat density = static_cast< dfloat >( nSeeds ) / static_cast< dfloat >( c_in.NumberOfPixels() );
+   if(( seeds == S::EXACT ) || ( nIterations == 0 )) {
+      if( noise > 0 ) {
+         Image tmp( c_in.Sizes(), 3, DT_SFLOAT );
+         Image noisy;
+         for( dip::uint ii = 0; ii < 3; ++ii ) {
+            UniformNoise( c_in, noisy, random, 0.0, noise );
+            Image tmp_out = tmp[ ii ];
+            tmp_out.Protect();
+            ExactStochasticWatershed( noisy, tmp_out, density );
+         }
+         tmp.Protect();
+         Gauss( tmp, tmp, { 0.8 }, { 0 }, "fir" );
+         GeometricMeanTensorElement( tmp, out );
+      } else {
+         ExactStochasticWatershed( c_in, out, density );
+      }
+      return;
+   }
+   bool poisson = seeds == S::POISSON;
+   Image in = c_in; // NOLINT(*-unnecessary-copy-initialization)
+   if( out.Aliases( in )) {
+      out.Strip();
+   }
+   out.ReForge( in, DT_LABEL, Option::AcceptDataTypeChange::DO_ALLOW );
+   out.Fill( 0 );
+   Image grid = in.Similar( DT_BIN );
+   Image edges = in.Similar( DT_BIN );
+   Image noisy = noise > 0.0 ? in.Similar( DataType::SuggestFloat( in.DataType() )) : in.QuickCopy();
+   for( dip::uint iter = 0; iter < nIterations; ++iter ) {
+      if( poisson ) {
+         FillPoissonPointProcess( grid, random, density );
+      } else {
+         FillRandomGrid( grid, random, density, seeds, S::ROTATION );
+      }
+      if( noise > 0.0 ) {
+         UniformNoise( in, noisy, random, 0.0, noise );
+      }
+      SeededWatershed( noisy, grid, {}, edges, 1, -1 /* no merging */ );
+      out += edges;
+   }
+}
+
+} // namespace dip

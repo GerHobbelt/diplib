@@ -8,11 +8,36 @@ date: 2020-00-00
 
 ### New functionality
 
+- `dip::ImageWriteTiff()` now can write 3D images to a TIFF file as a series of slices.
+  See [PR #182](https://github.com/DIPlib/diplib/pull/182).
+
+- Added `dip::Graph::EdgeVertex()` for convenience. `graph.EdgeVertex( edge, which )` is the same as what
+  previously was written `graph.Edges()[ edge ].vertices[ which ].`
+
+- Added `dip::Graph::IsValidEdge()`.
+
+- Added `dip::Graph::UpdateEdgeWeights<>()`, an overload that takes a function as input; this function
+  is applied to the two vertex weights for each edge, and should return an edge weight.
+
+- Added `dip::DirectedGraph`, a directed version of `dip::Graph`.
+
+- Added `dip::GraphCut()`, a function that computes the minimum cut of a directed graph. This is a segmentation
+  algorithm that splits the graph into two sections based on two marker vertices (nodes).
+
+- Added `dip::Label()` with a `dip::Graph` and a `dip::DirectedGraph` as input.
+  It finds connected components in the graph.
+
 ### Changed functionality
 
 - `dip::AlignedAllocInterface` now aligns each of the scanlines (rows of the image), not just the first one.
   This means it can be used to create images that are compatible with some image display widgets (Windows
   bitmap, Qt image, etc.).
+
+- `dip::LowestCommonAncestorSolver` is no longer in the public API. This class contained code used in the
+  Exact Stochastic Watershed (`dip::StochasticWatershed` with `seeds` set to `"exact"` or `nIterations` set to 0).
+
+- `dip::MinimumSpanningForest()` is now a free function. The `dip::Graph::MinimumSpanningForest()` class
+  function still exists for backwards-compatibility, it calls the free function.
 
 ### Bug fixes
 
@@ -67,6 +92,14 @@ date: 2020-00-00
 ## Changes to *PyDIP*
 
 ### New functionality
+
+- Added the function `dip.Doc()`, which will open the documentation for the given function or class in the
+  default web browser.
+
+- Automatically copying the brief section of the documentation to each function as the Python doc string.
+  We finally have some documentation in Python!  
+  NOTE: We could copy the full documentation in the future, but that requires more extensive Markdown
+  parsing to produce good results.
 
 ### Changed functionality
 

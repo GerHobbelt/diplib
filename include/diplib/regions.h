@@ -172,13 +172,23 @@ DIP_NODISCARD inline Image Relabel( Image const& label ) {
 /// dip::Image label = dip::Watershed( dip::GradientMagnitude( input, { 2 } ), {}, 2, 1, 0, { "labels" } );
 /// dip::MeasurementTool measurementTool;
 /// auto msr = measurementTool.Measure( label, input, { "Mean" } );
-/// dip::Graph graph = RegionAdjacencyGraph( label, msr[ "Mean" ], "watershed" );
-/// graph = graph.MinimumSpanningForest( { 1 } ); // make sure we don't use the unconnected vertex 0 as root.
+/// dip::Graph graph = dip::RegionAdjacencyGraph( label, msr[ "Mean" ], "watershed" );
+/// graph = dip::MinimumSpanningForest( graph, { 1 } ); // make sure we don't use the unconnected vertex 0 as root.
 /// graph.RemoveLargestEdges( 100 );
 /// dip::Relabel( label, label, graph );
 /// ```
 DIP_EXPORT void Relabel( Image const& label, Image& out, Graph const& graph );
 DIP_NODISCARD inline Image Relabel( Image const& label, Graph const& graph ) {
+   Image out;
+   Relabel( label, out, graph );
+   return out;
+}
+
+/// \brief Re-assigns labels to objects in a labeled image, such that regions joined by an edge in `graph` obtain the same label.
+///
+/// \ref dip::DirectedGraph version of the function above.
+DIP_EXPORT void Relabel( Image const& label, Image& out, DirectedGraph const& graph );
+DIP_NODISCARD inline Image Relabel( Image const& label, DirectedGraph const& graph ) {
    Image out;
    Relabel( label, out, graph );
    return out;
@@ -394,6 +404,9 @@ RangeArray DIP_EXPORT GetLabelBoundingBox( Image const& label, LabelType objectI
 /// to another region, then the edge weight is very small to indicate a strong connection.
 ///
 /// Vertex values are not assigned.
+///
+/// After modifying the graph (removing edges to split the graph into separate islands), use
+/// \ref dip::Relabel(dip::Image const&, dip::Image&, dip::Graph const&) to update the `labels` image.
 DIP_EXPORT Graph RegionAdjacencyGraph( Image const& labels, String const& mode = "touching" );
 
 /// \brief Construct a graph for the given labeled image.

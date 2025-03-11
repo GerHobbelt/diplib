@@ -1,6 +1,6 @@
 /*
  * (c)2017-2021, Flagship Biosciences, Inc., written by Cris Luengo.
- * (c)2022-2024, Cris Luengo.
+ * (c)2022-2025, Cris Luengo.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,19 +28,6 @@
 #include "diplib/label_map.h"
 
 
-namespace pybind11 {
-namespace detail {
-
-DIP_OUTPUT_TYPE_CASTER( Measurement::FeatureInformation, "FeatureInformation", "name startColumn numberValues", src.name, src.startColumn, src.numberValues )
-DIP_OUTPUT_TYPE_CASTER( Feature::ValueInformation, "ValueInformation", "name units", src.name, src.units )
-DIP_OUTPUT_TYPE_CASTER( CovarianceMatrix::EllipseParameters, "EllipseParameters", "majorAxis minorAxis orientation eccentricity", src.majorAxis, src.minorAxis, src.orientation, src.eccentricity )
-DIP_OUTPUT_TYPE_CASTER( FeretValues, "FeretValues", "maxDiameter minDiameter maxPerpendicular maxAngle minAngle", src.maxDiameter, src.minDiameter, src.maxPerpendicular, src.maxAngle, src.minAngle )
-DIP_OUTPUT_TYPE_CASTER( RadiusValues, "RadiusValues", "mean standardDev maximum minimum circularity", src.Mean(), src.StandardDeviation(), src.Maximum(), src.Minimum(), src.Circularity() )
-
-} // namespace detail
-} // namespace pybind11
-
-
 namespace {
 
 template< typename T >
@@ -49,18 +36,12 @@ py::object VertexTuple( dip::Vertex< T > const& v ) {
    return CreateNamedTuple( vertexType, "x y", v.x, v.y );
 }
 
-template< typename T >
-py::object BoundingBoxTuple( dip::BoundingBox< T > const& bb ) {
-   char const* boundingBoxType = std::is_same< T, dip::dfloat >::value ? "BoundingBoxFloat" : "BoundingBoxInteger";
-   auto topLeft = VertexTuple( bb.topLeft );
-   auto bottomRight = VertexTuple( bb.bottomRight );
-   return CreateNamedTuple( boundingBoxType, "topLeft bottomRight", topLeft, bottomRight );
-}
-
 } // namespace
 
 namespace pybind11 {
 namespace detail {
+
+#define PyNumber_Check( v ) (PyFloat_Check( v ) || PyLong_Check( v ))
 
 // Cast Python 2-tuple to dip::VertexFloat
 template<>
@@ -76,7 +57,7 @@ class type_caster< dip::VertexFloat > {
          if( seq.size() != 2 ) {
             return false;
          }
-         if( !PyFloat_Check( seq[ 0 ].ptr() ) || !PyFloat_Check( seq[ 1 ].ptr() )) {
+         if( !PyNumber_Check( seq[ 0 ].ptr() ) || !PyNumber_Check( seq[ 1 ].ptr() )) {
             return false;
          }
          value = { seq[ 0 ].cast< dip::dfloat >(), seq[ 1 ].cast< dip::dfloat >() };
@@ -117,37 +98,16 @@ class type_caster< dip::VertexInteger > {
       PYBIND11_TYPE_CASTER( type, _( "VertexInteger" ));
 };
 
-template<>
-class type_caster< dip::BoundingBoxFloat > {
-   public:
-      using type = dip::BoundingBoxFloat;
+DIP_OUTPUT_TYPE_CASTER( Measurement::FeatureInformation, "FeatureInformation", "name startColumn numberValues", src.name, src.startColumn, src.numberValues )
+DIP_OUTPUT_TYPE_CASTER( Feature::ValueInformation, "ValueInformation", "name units", src.name, src.units )
 
-      bool load( handle /*src*/, bool /*convert*/ ) {
-         return false;  // Disallow casting to the type, this is not an input argument anywhere
-      }
-
-      static handle cast( dip::BoundingBoxFloat const& src, return_value_policy /*policy*/, handle /*parent*/ ) {
-         return BoundingBoxTuple( src ).release();
-      }
-
-      PYBIND11_TYPE_CASTER( type, _( "BoundingBoxFloat" ));
-};
-
-template<>
-class type_caster< dip::BoundingBoxInteger > {
-   public:
-      using type = dip::BoundingBoxInteger;
-
-      bool load( handle /*src*/, bool /*convert*/ ) {
-         return false;  // Disallow casting to the type, this is not an input argument anywhere
-      }
-
-      static handle cast( dip::BoundingBoxInteger const& src, return_value_policy /*policy*/, handle /*parent*/ ) {
-         return BoundingBoxTuple( src ).release();
-      }
-
-      PYBIND11_TYPE_CASTER( type, _( "BoundingBoxInteger" ));
-};
+DIP_OUTPUT_TYPE_CASTER( BoundingBoxFloat, "BoundingBoxFloat", "topLeft bottomRight", VertexTuple( src.topLeft ), VertexTuple( src.bottomRight ) )
+DIP_OUTPUT_TYPE_CASTER( BoundingBoxInteger, "BoundingBoxInteger", "topLeft bottomRight", VertexTuple( src.topLeft ), VertexTuple( src.bottomRight ) )
+DIP_OUTPUT_TYPE_CASTER( FeretValues, "FeretValues", "maxDiameter minDiameter maxPerpendicular maxAngle minAngle", src.maxDiameter, src.minDiameter, src.maxPerpendicular, src.maxAngle, src.minAngle )
+DIP_OUTPUT_TYPE_CASTER( RadiusValues, "RadiusValues", "mean standardDev maximum minimum circularity", src.Mean(), src.StandardDeviation(), src.Maximum(), src.Minimum(), src.Circularity() )
+DIP_OUTPUT_TYPE_CASTER( CircleParameters, "CircleParameters", "center diameter", VertexTuple( src.center ), src.diameter )
+DIP_OUTPUT_TYPE_CASTER( EllipseParameters, "EllipseParameters", "center majorAxis minorAxis orientation eccentricity", VertexTuple( src.center ), src.majorAxis, src.minorAxis, src.orientation, src.eccentricity )
+DIP_OUTPUT_TYPE_CASTER( CovarianceMatrix::Eigenvalues, "Eigenvalues", "largest smallest, eccentricity", src.largest, src.smallest, src.Eccentricity() )
 
 } // namespace detail
 } // namespace pybind11
@@ -498,6 +458,28 @@ void init_measurement( py::module& m ) {
    m.def( "ObjectMinimum", &dip::ObjectMinimum, "featureValues"_a, doc_strings::dip·ObjectMinimum·Measurement·IteratorFeature·CL );
    m.def( "ObjectMaximum", &dip::ObjectMaximum, "featureValues"_a, doc_strings::dip·ObjectMaximum·Measurement·IteratorFeature·CL );
 
+   // dip::CovarianceMatrix
+   auto covmat = py::class_< dip::CovarianceMatrix >( m, "CovarianceMatrix", doc_strings::dip·CovarianceMatrix );
+   covmat.def( py::init<>(), doc_strings::dip·CovarianceMatrix·CovarianceMatrix );
+   covmat.def( py::init< dip::VertexFloat const& >(), "v"_a, doc_strings::dip·CovarianceMatrix·CovarianceMatrix·VertexFloat· );
+   covmat.def( py::init< dip::dfloat, dip::dfloat, dip::dfloat >(), "xx"_a, "yy"_a, "xy"_a, doc_strings::dip·CovarianceMatrix·CovarianceMatrix·dfloat··dfloat··dfloat· );
+   covmat.def( "__repr__", []( dip::CovarianceMatrix const& self ) {
+         std::ostringstream os;
+         os << "<CovarianceMatrix: xx = " << self.xx() << ", xy = " << self.xy() << ", yy = " << self.yy() << ">";
+         return os.str();
+      } );
+   covmat.def_property_readonly( "xx", &dip::CovarianceMatrix::xx, doc_strings::dip·CovarianceMatrix·xx·C );
+   covmat.def_property_readonly( "xy", &dip::CovarianceMatrix::xy, doc_strings::dip·CovarianceMatrix·xy·C );
+   covmat.def_property_readonly( "yy", &dip::CovarianceMatrix::yy, doc_strings::dip·CovarianceMatrix·yy·C );
+   covmat.def( "Det", &dip::CovarianceMatrix::Det, doc_strings::dip·CovarianceMatrix·Det·C );
+   covmat.def( "Inv", &dip::CovarianceMatrix::Inv, doc_strings::dip·CovarianceMatrix·Inv·C );
+   covmat.def( "__iadd__", &dip::CovarianceMatrix::operator+=, "other"_a, doc_strings::dip·CovarianceMatrix·operatorpluseq·CovarianceMatrix·CL );
+   covmat.def( "__imul__", &dip::CovarianceMatrix::operator*=, "d"_a, doc_strings::dip·CovarianceMatrix·operatortimeseq·dfloat· );
+   covmat.def( "__itruediv__", &dip::CovarianceMatrix::operator/=, "d"_a, doc_strings::dip·CovarianceMatrix·operatordiveq·dfloat· );
+   covmat.def( "Project", &dip::CovarianceMatrix::Project, "v"_a, doc_strings::dip·CovarianceMatrix·Project·VertexFloat·CL·C );
+   covmat.def( "Eig", &dip::CovarianceMatrix::Eig, doc_strings::dip·CovarianceMatrix·Eig·C );
+   covmat.def( "Ellipse", &dip::CovarianceMatrix::Ellipse, "solid"_a = false, doc_strings::dip·CovarianceMatrix·Ellipse·bool··C );
+
    // dip::Polygon
    auto poly = py::class_< dip::Polygon >( m, "Polygon", py::buffer_protocol(),
                                            "A polygon with floating-point vertices representing a 2D object.\n"
@@ -523,15 +505,23 @@ void init_measurement( py::module& m ) {
    poly.def( "IsClockWise", &dip::Polygon::IsClockWise, doc_strings::dip·Polygon·IsClockWise·C );
    poly.def( "Area", &dip::Polygon::Area, doc_strings::dip·Polygon·Area·C );
    poly.def( "Centroid", &dip::Polygon::Centroid, doc_strings::dip·Polygon·Centroid·C );
+   poly.def( "CovarianceMatrixVertices", py::overload_cast< dip::VertexFloat const& >( &dip::Polygon::CovarianceMatrixVertices, py::const_ ), "g"_a, doc_strings::dip·Polygon·CovarianceMatrixVertices·VertexFloat·CL·C );
+   poly.def( "CovarianceMatrixVertices", py::overload_cast<>( &dip::Polygon::CovarianceMatrixVertices, py::const_ ), doc_strings::dip·Polygon·CovarianceMatrixVertices·C );
+   poly.def( "CovarianceMatrixSolid", py::overload_cast< dip::VertexFloat const& >( &dip::Polygon::CovarianceMatrixSolid, py::const_ ), "g"_a, doc_strings::dip·Polygon·CovarianceMatrixSolid·VertexFloat·CL·C );
+   poly.def( "CovarianceMatrixSolid", py::overload_cast<>( &dip::Polygon::CovarianceMatrixSolid, py::const_ ), doc_strings::dip·Polygon·CovarianceMatrixSolid·C );
    poly.def( "Length", &dip::Polygon::Length, doc_strings::dip·Polygon·Length·C );
    poly.def( "Perimeter", &dip::Polygon::Perimeter, doc_strings::dip·Polygon·Perimeter·C );
    poly.def( "EllipseParameters", []( dip::Polygon const& self ) { return self.CovarianceMatrixSolid().Ellipse( true ); },
              "Compute parameters of ellipse with same covariance matrix.\n"
              "Corresponds to `dip::Polygon::CovarianceMatrixSolid().Ellipse( true )`." );
    poly.def( "RadiusStatistics", py::overload_cast<>( &dip::Polygon::RadiusStatistics, py::const_ ), doc_strings::dip·Polygon·RadiusStatistics·C );
+   poly.def( "RadiusStatistics", py::overload_cast< dip::VertexFloat const& >( &dip::Polygon::RadiusStatistics, py::const_ ), "g"_a, doc_strings::dip·Polygon·RadiusStatistics·VertexFloat·CL·C );
    poly.def( "EllipseVariance", py::overload_cast<>( &dip::Polygon::EllipseVariance, py::const_ ), doc_strings::dip·Polygon·EllipseVariance·C );
+   poly.def( "EllipseVariance", py::overload_cast< dip::VertexFloat const&, dip::CovarianceMatrix const& >( &dip::Polygon::EllipseVariance, py::const_ ), doc_strings::dip·Polygon·EllipseVariance·VertexFloat·CL·dip·CovarianceMatrix·CL·C );
    poly.def( "FractalDimension", &dip::Polygon::FractalDimension, "length"_a = 0.0, doc_strings::dip·Polygon·FractalDimension·dfloat··C );
    poly.def( "BendingEnergy", &dip::Polygon::BendingEnergy, doc_strings::dip·Polygon·BendingEnergy·C );
+   poly.def( "FitCircle", &dip::Polygon::FitCircle, doc_strings::dip·Polygon·FitCircle·C );
+   poly.def( "FitEllipse", &dip::Polygon::FitEllipse, doc_strings::dip·Polygon·FitEllipse·C );
    poly.def( "Simplify", &dip::Polygon::Simplify, "tolerance"_a = 0.5, doc_strings::dip·Polygon·Simplify·dfloat· );
    poly.def( "Augment", &dip::Polygon::Augment, "distance"_a = 1.0, doc_strings::dip·Polygon·Augment·dfloat· );
    poly.def( "Smooth", &dip::Polygon::Smooth, "sigma"_a = 1.0, doc_strings::dip·Polygon·Smooth·dfloat· );
@@ -593,7 +583,7 @@ void init_measurement( py::module& m ) {
    chain.def( "BendingEnergy", &dip::ChainCode::BendingEnergy, doc_strings::dip·ChainCode·BendingEnergy·C );
    chain.def( "BoundingBox", &dip::ChainCode::BoundingBox, doc_strings::dip·ChainCode·BoundingBox·C );
    chain.def( "LongestRun", &dip::ChainCode::LongestRun, doc_strings::dip·ChainCode·LongestRun·C );
-   chain.def( "Polygon", &dip::ChainCode::Polygon, doc_strings::dip·ChainCode·Polygon·C );
+   chain.def( "Polygon", &dip::ChainCode::Polygon, "borderCodes"_a = dip::S::KEEP, doc_strings::dip·ChainCode·Polygon·String·CL·C );
    chain.def( "Image", py::overload_cast<>( &dip::ChainCode::Image, py::const_ ), doc_strings::dip·ChainCode·Image·dip·Image·L·C );
    chain.def( "Image", py::overload_cast< dip::Image& >( &dip::ChainCode::Image, py::const_ ), "out"_a, doc_strings::dip·ChainCode·Image·dip·Image·L·C );
    chain.def( "Coordinates", &dip::ChainCode::Coordinates, doc_strings::dip·ChainCode·Coordinates·C );

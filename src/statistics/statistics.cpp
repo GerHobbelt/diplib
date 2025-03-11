@@ -444,9 +444,9 @@ QuartilesResult QuartilesInternal( Image& buffer ) {
    dip::uint nSamples = buffer.NumberOfSamples();
    TPI* begin = static_cast< TPI* >( buffer.Origin() );
    TPI* end = begin + nSamples;
-   TPI* lower = begin + round_cast( static_cast< dfloat >( nSamples - 1 ) * 0.25 );
-   TPI* median = begin + round_cast( static_cast< dfloat >( nSamples - 1 ) * 0.50 );
-   TPI* upper = begin + round_cast( static_cast< dfloat >( nSamples - 1 ) * 0.75 );
+   TPI* lower = begin + RankFromPercentile( 25.0, nSamples );
+   TPI* median = begin + RankFromPercentile( 50.0, nSamples );
+   TPI* upper = begin + RankFromPercentile( 75.0, nSamples );
    std::nth_element( begin, median, end );
    if( begin >= median - 1 ) {
       lower = begin;

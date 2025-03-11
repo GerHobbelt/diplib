@@ -1,5 +1,5 @@
 /*
- * (c)2017-2022, Cris Luengo.
+ * (c)2017-2025, Cris Luengo.
  * Based on original DIPlib code: (c)1995-2014, Delft University of Technology.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,36 +25,64 @@
 #include "diplib.h"
 #include "diplib/analysis.h"
 #include "diplib/chain_code.h"
+#include "diplib/random.h"
 #include "diplib/segmentation.h"
 #include "diplib/statistics.h"
+
+#include "threshold_algorithms.h"
 
 
 namespace dip {
 
 using CountType = Histogram::CountType;
 
-Histogram KMeansClustering(
-      Histogram const& in,
-      dip::uint nClusters
-) {
-   Image labs;
-   KMeansClustering( in.GetImage(), labs, nClusters );
-   Histogram out = in.Copy();
-   Image tmp = out.GetImage(); // Copy with shared data
-   tmp.Copy( labs );
+namespace {
+
+// Compute nD bin centers from bin indices
+FloatCoordinateArray ComputeCoordinates( Histogram const& hist, CoordinateArray const& bins ) {
+   dip::uint nDims = hist.Dimensionality();
+   FloatCoordinateArray out( bins.size(), FloatArray( nDims, 0 ) );
+   for( dip::uint ii = 0; ii < bins.size(); ++ii ) {
+      DIP_ASSERT( bins[ ii ].size() == nDims );
+      for( dip::uint jj = 0; jj < nDims; ++jj ) {
+         out[ ii ][ jj ] = hist.BinCenter( bins[ ii ][ jj ], jj );
+      }
+   }
    return out;
 }
 
-Histogram MinimumVariancePartitioning(
+} // namespace
+
+
+FloatCoordinateArray KMeansClustering(
       Histogram const& in,
+      Histogram& out,
+      Random& random,
       dip::uint nClusters
 ) {
    Image labs;
-   MinimumVariancePartitioning( in.GetImage(), labs, nClusters );
-   Histogram out = in.Copy();
+   auto centers = KMeansClustering( in.GetImage(), labs, random, nClusters );
+   if( &out != &in ) {
+      out = in.Copy();
+   }
    Image tmp = out.GetImage(); // Copy with shared data
    tmp.Copy( labs );
-   return out;
+   return ComputeCoordinates( out, centers );
+}
+
+FloatCoordinateArray MinimumVariancePartitioning(
+      Histogram const& in,
+      Histogram& out,
+      dip::uint nClusters
+) {
+   Image labs;
+   auto centers = MinimumVariancePartitioning( in.GetImage(), labs, nClusters );
+   if( &out != &in ) {
+      out = in.Copy();
+   }
+   Image tmp = out.GetImage(); // Copy with shared data
+   tmp.Copy( labs );
+   return ComputeCoordinates( out, centers );
 }
 
 FloatArray IsodataThreshold(
@@ -130,53 +158,20 @@ FloatArray IsodataThreshold(
    return thresholds;
 }
 
-dfloat OtsuThreshold(
-      Histogram const& in
-) {
+dfloat OtsuThreshold( Histogram const& in ) {
    DIP_THROW_IF( in.Dimensionality() != 1, E::DIMENSIONALITY_NOT_SUPPORTED );
    Image const& hist = in.GetImage();
    DIP_ASSERT( hist.IsForged() );
    DIP_ASSERT( hist.DataType() == DT_COUNT );
    DIP_ASSERT( hist.Stride( 0 ) == 1 );
-   dip::uint nBins = hist.Size( 0 );
-   FloatArray bins = in.BinCenters();
    Histogram::CountType const* data = static_cast< Histogram::CountType const* >( hist.Origin() );
-   dfloat const* binPtr = bins.data();
-   // w1(ii), w2(ii) are the probabilities of each of the halves of the histogram thresholded between bins(ii) and bins(ii+1)
-   dfloat w1 = 0;
-   dfloat w2 = std::accumulate( data, data + nBins, 0.0 );
-   // m1(ii), m2(ii) are the corresponding first order moments
-   dfloat m1 = 0;
-   dfloat m2 = std::inner_product( data, data + nBins, binPtr, 0.0 );
-   // Here we accumulate the max.
-   dfloat ssMax = -1e6;
-   dip::uint maxInd = 0;
-   for( dip::uint ii = 0; ii < nBins - 1; ++ii ) {
-      w1 += static_cast< dfloat >( *data );
-      w2 -= static_cast< dfloat >( *data );
-      dfloat tmp = static_cast< dfloat >( *data ) * *binPtr;
-      m1 += tmp;
-      m2 -= tmp;
-      // c1(ii), c2(ii) are the centers of gravity
-      dfloat c1 = m1 / w1;
-      dfloat c2 = m2 / w2;
-      dfloat c = c1 - c2;
-      // ss(ii) is Otsu's measure for inter-class variance
-      dfloat ss = w1 * w2 * c * c;
-      if( ss > ssMax ) {
-         ssMax = ss;
-         maxInd = ii;
-      }
-      ++data;
-      ++binPtr;
-   }
-   DIP_THROW_IF( ssMax == -1e6, "Could not find a maximum in Otsu's measure for inter-class variance" );
-   return ( bins[ maxInd ] + bins[ maxInd + 1 ] ) / 2.0;
+   dip::uint nBins = hist.Size( 0 );
+   dip::uint maxInd = OtsuThreshold( data, nBins );
+   DIP_THROW_IF( maxInd == nBins, "Could not find a maximum in Otsu's measure for inter-class variance" );
+   return ( in.BinCenter( maxInd ) + in.BinCenter( maxInd + 1 )) / 2.0;
 }
 
-dfloat MinimumErrorThreshold(
-      Histogram const& in
-) {
+dfloat MinimumErrorThreshold( Histogram const& in ) {
    DIP_THROW_IF( in.Dimensionality() != 1, E::DIMENSIONALITY_NOT_SUPPORTED );
    Image const& hist = in.GetImage();
    DIP_ASSERT( hist.IsForged() );

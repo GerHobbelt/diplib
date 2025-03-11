@@ -27,6 +27,12 @@ date: 2020-00-00
 - Added `dip::Label()` with a `dip::Graph` and a `dip::DirectedGraph` as input.
   It finds connected components in the graph.
 
+- Added `dip::GraphCut()`, a function that computes the grap-cut segmentation of an image.
+
+- Added `dip::Histogram::Configuration::Mode::IS_COMPLETE`, which prevents a configuration from being
+  modified when computing a histogram. It is set by `dip::Histogram::Configuration::Complete()`.
+  This option is dangerous to use!
+
 ### Changed functionality
 
 - `dip::AlignedAllocInterface` now aligns each of the scanlines (rows of the image), not just the first one.
@@ -51,9 +57,21 @@ date: 2020-00-00
   This would throw an exception if the image was protected, but was always a bad thing to do.
   See [issue #170](https://github.com/DIPlib/diplib/issues/170).
 
+- The Fourier Transform, when using the default PocketFFT, used a plan cache that was not thread safe. When calling
+  any function using a Fourier Transform from multiple threads, a race condition could occur. We've added a mutex
+  to the function that maintains the cache to avoid this.
+
+- In 3.5.0, the original version of `dip::GetImageChainCodes()` was deprecated in favor of a new one that takes
+  a `std::vector< dip::LabelType >` as input, as opposed to a `dip::UnsignedArray`. This caused code that called
+  the function with an initializer array (`dip::GetImageChainCodes( image, { 1 } )`) to become ambiguous. A new
+  overload that takes an initializer list as input fixes this ambiguity.
+
 ### Updated dependencies
 
 ### Build changes
+
+- The documentation building target was renamed to "doc" (as "apidoc"). This target builds much more documentation
+  than just the DIPlib API documentation (the DIPimage and PyDIP user manuals, build instructions, etc.).
 
 
 
@@ -61,6 +79,9 @@ date: 2020-00-00
 ## Changes to *DIPimage*
 
 ### New functionality
+
+- The function documentation now has links to the online DIPlib documentation. Instead of only
+  naming the DIPlib functions used, the function names are now hyperlinks.
 
 ### Changed functionality
 
@@ -101,7 +122,45 @@ date: 2020-00-00
   NOTE: We could copy the full documentation in the future, but that requires more extensive Markdown
   parsing to produce good results.
 
+- Overloaded `len()` for `dip.Measurement`. It's equal to `NumberOfObjects()` (the number of rows),
+  and thus produces the same value it does when casting the measurement objects to a NumPy array
+  (`len(measurement)` is the same as `len(np.asarray(measurement))`).
+
+- Overloaded `len()` and `iter()` for `dip.Measurement.IteratorFeature` and `dip.Measurement.IteratorObject`,
+  and added `keys()`, `values()` and `items()` class methods. Now both behave more like Python dicts.
+  But note that all three of these methods will output a list with a copy of the values, it's not a view
+  as with dicts.
+
 ### Changed functionality
+
+- Converted several tuple output arguments to `namedtuple`. Note of these changes should affect existing code:
+
+    - The function `dip.MaximumAndMinimum()` now returns a `namedtuple` of type `MinMaxValues`.
+      The two values can now (and preferably) be accessed using the dot notation: `mm.maximum` instead of `mm[1]`.
+      See [issue #184](https://github.com/DIPlib/diplib/issues/184).
+
+    - The functions `dip.MandersColocalizationCoefficients()` and `dip.CostesColocalizationCoefficients()`
+      now return a `namedtuple` of type `ColocalizationCoefficients`.
+
+    - The functions `dip.ChainCode.BoundingBox()` and `dip.Polygon.BoundingBox()` now return a `namedtuple`
+      of type `BoundingBoxInteger` and `BoundingBoxFloat` respectively, which contain two `namedtuple`s of type
+      `VertexInteger` or `VertexFloat`.
+
+    - Other `dip.Polygon` functions such as `dip.Polygon.Centroid()` now return a `namedtuple` of type `VertexFloat`.
+
+    - `dip.ChainCode.start` is now a `namedtuple` of type `VertexInteger`.
+
+- The types `SubpixelLocationResult`, `RadonCircleParameters`, `RegressionParameters`, `GaussianParameters`,
+  `FeatureInformation`, `ValueInformation`, `EllipseParameters`, `FeretValues`, `RadiusValues`, `QuartilesResult`,
+  `StatisticsValues`, `CovarianceValues`, `MomentValues` and `SpatialOverlapMetrics`, all used only as outputs to
+  functions, and all simply emulating a C++ `struct`, are no longer special types in the `diplib.PyDIP_bin` namespace,
+  but `namedtuple`s. They new types behave identically, but can additionally be unpacked, for example:
+  `_, q1, _, q3, _ = dip.Quartiles(img)`.
+
+- `dip::Measurement::IteratorFeature` was bound in Python as `dip.Measurement.MeasurementFeature`, and
+  `dip::Measurement::IteratorObject` as `dip.Measurement.MeasurementObject`. The names of these classes now
+  match the C++ name, to make `dip.Doc()` useful with these classes. But the names don't make much sense in
+  Python because these objects don't work as iterators like they do in C++.
 
 (See also changes to *DIPlib*.)
 

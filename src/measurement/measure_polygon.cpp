@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include "diplib/chain_code.h"
+#include "diplib/polygon.h"
 
 #include <algorithm>
 #include <cmath>
@@ -29,7 +29,9 @@
    // For Eigen, turn off -Wsign-conversion
    #pragma GCC diagnostic push
    #pragma GCC diagnostic ignored "-Wsign-conversion"
-   #ifndef __clang__
+   #ifdef __clang__
+      #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+   #else
       #pragma GCC diagnostic ignored "-Wclass-memaccess"
    #endif
    #if ( __GNUC__ >= 11 ) && ( __GNUC__ <= 14 )
@@ -424,6 +426,7 @@ EllipseParameters Polygon::FitEllipse() const {
 
 #ifdef DIP_CONFIG_ENABLE_DOCTEST
 #include "doctest.h"
+#include "diplib/chain_code.h"
 
 DOCTEST_TEST_CASE("[DIPlib] testing chain code polygons") {
    dip::ChainCode cc;

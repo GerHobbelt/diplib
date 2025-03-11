@@ -18,12 +18,12 @@
 #include <iostream>
 #include <sstream>
 #include <tuple>
-#include <type_traits>
 #include <vector>
 
 #include "pydip.h"
 #include "accumulators.h" // IWYU pragma: keep
 #include "diplib/measurement.h"
+#include "diplib/polygon.h"
 #include "diplib/chain_code.h"
 #include "diplib/label_map.h"
 
@@ -539,7 +539,7 @@ void init_measurement( py::module& m ) {
    poly.def( "Feret", []( dip::Polygon const& self ) { return self.ConvexHull().Feret(); },
              "Returns the Feret diameters of the convex hull.\n"
              "Corresponds to `dip::Polygon::ConvexHull().Feret()`." );
-
+   poly.def( "Contains", &dip::Polygon::Contains, "point"_a, doc_strings::dip·Polygon·Contains·VertexFloat··C );
    // dip::ChainCode
    auto chain = py::class_< dip::ChainCode >( m, "ChainCode", doc_strings::dip·ChainCode );
    chain.def( "__repr__", []( dip::ChainCode const& self ) {
@@ -591,7 +591,7 @@ void init_measurement( py::module& m ) {
 
    // Chain code functions
    m.def( "GetImageChainCodes", py::overload_cast< dip::Image const&, std::vector< dip::LabelType > const&, dip::uint >( &dip::GetImageChainCodes ),
-          "labels"_a, "objectIDs"_a = dip::UnsignedArray{}, "connectivity"_a = 2, doc_strings::dip·GetImageChainCodes·Image·CL·std·vectorgtLabelTypelt·CL·dip·uint· );
+          "labels"_a, "objectIDs"_a = dip::UnsignedArray{}, "connectivity"_a = 2, doc_strings::dip·GetImageChainCodes·Image·CL·std·vectorltLabelTypegt·CL·dip·uint· );
    m.def( "GetSingleChainCode", &dip::GetSingleChainCode, "labels"_a, "startCoord"_a, "connectivity"_a = 2, doc_strings::dip·GetSingleChainCode·Image·CL·UnsignedArray·CL·dip·uint· );
 
 }

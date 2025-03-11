@@ -136,7 +136,7 @@ DIP_EXPORT void DrawLines(
 /// Pixels in `out` on the polygon (and within the polygon for filled polygons) are set to `value`, other pixels
 /// are not touched.
 ///
-/// The \ref dip::Polygon struct is defined in \ref "diplib/chain_code.h", which you'll need to include to use this function.
+/// The \ref dip::Polygon struct is defined in \ref "diplib/polygon.h", which you'll need to include to use this function.
 ///
 /// `out` must have two dimensions.
 DIP_EXPORT void DrawPolygon2D(
@@ -1591,11 +1591,11 @@ DIP_NODISCARD inline Image SaltPepperNoise(
 /// The output image will have a variance of `variance`. `color` indicates the color of the noise (and is equal to
 /// the power of the function used to modulate the frequency spectrum):
 ///
-/// - -2.0: Brownian noise (a.k.a. brown or red noise), with a frequency spectrum proportional to \$1/f^2\$.
-/// - -1.0: pink noise, with a frequency spectrum proportional to \$1/f\$.
+/// - -2.0: Brownian noise (a.k.a. brown or red noise), with a frequency spectrum proportional to $1/f^2$.
+/// - -1.0: pink noise, with a frequency spectrum proportional to $1/f$.
 /// - 0.0: white noise, equal to \ref "dip::GaussianNoise" (but much more expensive).
-/// - 1.0: blue noise, with a frequency spectrum proportional to \$f\$.
-/// - 2.0: violet noise, with a frequency spectrum proportional to \$f^2\$.
+/// - 1.0: blue noise, with a frequency spectrum proportional to $f$.
+/// - 2.0: violet noise, with a frequency spectrum proportional to $f^2$.
 ///
 /// It is possible to specify any values in between these, to tune the color more precisely. Values larger than
 /// 2.0 and smaller than -2.0 are possible also, but the results become less interesting quickly as the magnitude

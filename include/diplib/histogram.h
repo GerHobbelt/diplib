@@ -207,7 +207,7 @@ class DIP_NO_EXPORT Histogram {
 
          // Complete the configuration, computing the value given by `mode`, as well as percentiles if
          // required.
-         DIP_EXPORT void Complete( Measurement::IteratorFeature const& featureValues ) {
+         void Complete( Measurement::IteratorFeature const& featureValues ) {
             Complete( featureValues.AsScalarImage() );
          }
       };
@@ -1080,7 +1080,7 @@ class DIP_NO_EXPORT Distribution;
 /// `distribution[bin].Y(objectID, tensor)`, where `objectID` is the pixel values in `label`,
 /// but subtract one if `background` is `"exclude"`.
 ///
-/// Note that you will need to also include `<diplib/distribution.h>` to use this function.
+/// Note that you will need to also include \ref "diplib/distribution.h" to use this function.
 DIP_EXPORT Distribution PerObjectHistogram(
       Image const& grey,
       Image const& label,

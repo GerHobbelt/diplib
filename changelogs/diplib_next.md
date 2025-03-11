@@ -14,6 +14,10 @@ date: 2020-00-00
 - Added `dip::Polygon::FitCircle()` and `dip::Polygon::FitEllipse()`. The former returns a new data structure
   `dip::CircleParameters`.
 
+- Added `dip::Polygon::Contains()` to test if a point is inside the polygon.
+
+- Added `dip::ColorMapLut()`, expanding the functionality of `dip::ApplyColorMap()`.
+
 ### Changed functionality
 
 - All functions that compute a percentile (`dip::Percentile()`, `dip::PercentilePosition()`,
@@ -40,6 +44,9 @@ date: 2020-00-00
 
 - The `dip::LibraryInformation` struct now has a series of boolean values that encode the compilation settings, so
   it no longer is necessary to decode the `type` field to find out if a certain feature is available or not.
+
+- `dip::Polygon`, `dip::ConvexHull`, and the support structs that they depend on are now declared in `diplib/polygon.h`.
+  `diplib/chain_code.h` includes this new file, so old code will continue to work.
 
 ### Bug fixes
 
@@ -110,6 +117,8 @@ None, but see bugfixes to *DIPlib*.
 
 - `dip::VertexFloat` input arguments were required to be a sequence with two float values.
   Integer values are now also accepted.
+
+- `dip.LookupTable.Apply()` overload resolution fixed so that a scalar input is not converted to an image.
 
 (See also bugfixes to *DIPlib*.)
 

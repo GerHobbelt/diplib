@@ -106,6 +106,7 @@ class DIPVIEWER_CLASS_EXPORT SliceViewer : public Viewer {
       SliceViewer( SliceViewer&& ) = delete;
       SliceViewer& operator=( SliceViewer const& ) = delete;
       SliceViewer& operator=( SliceViewer&& ) = delete;
+      DIPVIEWER_EXPORT ~SliceViewer() override; // Not inline because of a linking error with GCC under MinGW.
 
       void release() override {
          if( continue_ ) {

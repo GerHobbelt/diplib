@@ -83,7 +83,7 @@ void GLFWManager::createWindow(WindowPtr window)
 
   GLFWwindow *wdw = glfwCreateWindow(width, height, "", NULL, NULL);
   GLFW_THROW_IF(wdw == nullptr, "Failed to create window");
-  
+
   glfwSetWindowRefreshCallback(wdw, refresh);
   glfwSetFramebufferSizeCallback(wdw, reshape);
   glfwSetWindowIconifyCallback(wdw, iconify);
@@ -97,13 +97,13 @@ void GLFWManager::createWindow(WindowPtr window)
   window->id((void*)wdw);
   windows_[window->id()] = window;
   window->create();
-  
+
   glfwGetFramebufferSize(wdw, &width, &height);
   window->resize(width, height);
   window->reshape(width, height);
   window->refresh();
 }
-    
+
 void GLFWManager::destroyWindows()
 {
   Guard guard(mutex_);
@@ -117,7 +117,7 @@ void GLFWManager::processEvents()
   Guard guard(mutex_);
 
   glfwPollEvents();
-  
+
   for (auto it = windows_.begin(); it != windows_.end();)
   {
     if (it->second.refresh)
@@ -126,7 +126,7 @@ void GLFWManager::processEvents()
       makeCurrent(it->second.wdw.get());
       it->second.wdw->draw();
     }
-  
+
     if (it->second.wdw->destroyed() || glfwWindowShouldClose((GLFWwindow*)it->first))
     {
       it->second.wdw->destroy();
@@ -136,6 +136,14 @@ void GLFWManager::processEvents()
     else
       ++it;
   }
+}
+
+UnsignedArray GLFWManager::screenSize() const
+{
+  auto const* data = glfwGetVideoMode(glfwGetPrimaryMonitor());
+  
+  return { static_cast< dip::uint >( std::max( data->width, 0 )),
+           static_cast< dip::uint >( std::max( data->height, 0 )) };
 }
 
 WindowPtr GLFWManager::getWindow(GLFWwindow *window)
@@ -186,13 +194,13 @@ void GLFWManager::makeCurrent(Window *window)
 void GLFWManager::getCursorPos(Window *window, int *x, int *y)
 {
   int fb_width, fb_height, wdw_width, wdw_height;
-  
+
   glfwGetWindowSize((GLFWwindow*)window->id(), &wdw_width, &wdw_height);
   glfwGetFramebufferSize((GLFWwindow*)window->id(), &fb_width, &fb_height);
 
   double wdw_x, wdw_y;
   glfwGetCursorPos((GLFWwindow*)window->id(), &wdw_x, &wdw_y);
-  
+
   *x = (int)(wdw_x * (double)fb_width/(double)wdw_width);
   *y = (int)(wdw_y * (double)fb_height/(double)wdw_height);
 }

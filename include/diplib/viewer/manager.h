@@ -212,6 +212,12 @@ class DIPVIEWER_CLASS_EXPORT Manager {
       /// ```
       virtual void processEvents() = 0;
 
+      /// \brief Returns the size of the screen in pixels.
+      ///
+      /// May only be called after the window manager has been initialized,
+      /// such as after creating a window.
+      virtual UnsignedArray screenSize() const = 0;
+
    protected:
       /// \brief Swap display buffers.
       ///

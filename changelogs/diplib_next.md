@@ -30,6 +30,14 @@ date: 2020-00-00
   shortcuts to (and potentially faster than) `dip::Any(dip::IsNotANumber(...)).As<bool>()`,
   `dip::Any(dip::IsInfinite(...)).As<bool>()` and `dip::ContainsNotANumber(...) || dip::ContainsInfinity(...)`.
 
+- Added `dip::Histogram::Configuration::IsInRange()`.
+
+- `dip::Eigenvalues()`, `dip::LargestEigenvalue()`, `dip::SmallestEigenvalue()` and `dip::EigenDecomposition()`
+  add a `method` argument, allowing the caller to select a faster, but potentially less precise method, when
+  computing the eigendecomposition of a real-valued, symmetric, 2x2 or 3x3 tensor image.
+  The low-level functions `dip::SymmetricEigenDecomposition2()` and `dip::SymmetricEigenDecomposition3()` add
+  the same argument, but as an enum rather than a string.
+
 ### Changed functionality
 
 - All functions that compute a percentile (`dip::Percentile()`, `dip::PercentilePosition()`,
@@ -67,6 +75,12 @@ date: 2020-00-00
 - `dip::Percentile()`, `dip::PositionPercentile()` and `dip::Quartiles()` ignore NaN values. Note that `dip::Median()`
   and `dip::PositionMedian()` are simple interfaces to the percentile functions, and therefore now also ignore NaN values.
 
+- `dip::Histogram` ignores NaN values when constructing a histogram. When including out-of-bounds values, NaN values
+  are added to the lower bin.
+
+- `dip::Histogram::Configuration::FindBin()` is overloaded for different data types, and properly handles NaN values.
+  `dip::Histogram::Bin()` also properly handles NaN values.
+
 ### Bug fixes
 
 - Fixed `dip::IsotropicErosion()` to use the same structuring element size as `dip::IsotropicDilation()`.
@@ -88,6 +102,8 @@ date: 2020-00-00
   image border.
 
 - `dip::ImageReadPNG()` reads in 4-channel images as `"sRGBA"`, not as `"sRGB"` as it did previously.
+
+- `dip::Histogram` should no longer crash on construction when the input has NaN values.
 
 ### Updated dependencies
 
@@ -158,6 +174,10 @@ None, but see bugfixes to *DIPlib*.
 ### New functionality
 
 ### Changed functionality
+
+- Creating multiple windows with `dip::viewer::Show()` or `dip::viewer::ShowSimple()` will arrange them across
+  the screen instead of placing them all at the same location. The arrangement is simplistic, assumes a single
+  screen, and assumes default window sizes. But the result should be more user-friendly than the previous behavior.
 
 ### Bug fixes
 

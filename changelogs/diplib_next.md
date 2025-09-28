@@ -105,6 +105,8 @@ date: 2020-00-00
 
 - `dip::Histogram` should no longer crash on construction when the input has NaN values.
 
+- `dip::EdgeObjectsRemove()` with a binary image as input did not preserve the pixel sizes.
+
 ### Updated dependencies
 
 ### Build changes
@@ -149,6 +151,13 @@ None, but see bugfixes to *DIPlib*.
   packages in Python, but might be convenient to have here too.
 
 ### Changed functionality
+
+- The `dip.Image` constructor no longer takes a pixel value as input. This means that `dip.Image(256)` is now the same
+  as `dip.Image((256,))`. Previously, the former created a 0D scalar image with the value 256, and the latter created
+  an uninitialized 1D image with 256 pixels. This was inconsistent and confusing. It could be surprising when a scalar
+  value input to a *DIPlib* function was accepted in the place of an image instead of producing a useful error message.
+  One now always needs to use `dip.Create0D()` to create a scalar image (but one can still convert a scalar NumPy array).  
+  **NOTE! This breaks backwards compatibility.**
 
 - `dip.libraryInformation` is now a `namedtuple`. There should be no compatibility concerns with this change,
   except that it prints differently.

@@ -1,5 +1,5 @@
 /*
- * (c)2014-2024, Cris Luengo.
+ * (c)2014-2025, Cris Luengo.
  * Based on original DIPlib code: (c)1995-2014, Delft University of Technology.
  *                                (c)2011, Cris Luengo.
  *
@@ -58,6 +58,18 @@ inline ret_type name( Image::View const& in ) { \
 DIP_EXPORT dip::uint Count( Image const& in, Image const& mask = {} );
 DIP_DEFINE_VIEW_FUNCTION( Count, dip::uint )
 
+/// \brief True if any pixel is NaN.
+DIP_EXPORT bool ContainsNotANumber( Image const& in, Image const& mask = {} );
+DIP_DEFINE_VIEW_FUNCTION( ContainsNotANumber, bool )
+
+/// \brief True if any pixel is infinite.
+DIP_EXPORT bool ContainsInfinity( Image const& in, Image const& mask = {} );
+DIP_DEFINE_VIEW_FUNCTION( ContainsInfinity, bool )
+
+/// \brief True if any pixel is non-finite (infinite or NaN).
+DIP_EXPORT bool ContainsNonFiniteValue( Image const& in, Image const& mask = {} );
+DIP_DEFINE_VIEW_FUNCTION( ContainsNonFiniteValue, bool )
+
 /// \brief Returns the coordinates of the maximum pixel in the image.
 ///
 /// The image must be scalar. If `in` is complex, the modulus of its values are used.
@@ -101,7 +113,7 @@ DIP_DEFINE_VIEW_FUNCTION( MaximumAndMinimum, MinMaxAccumulator )
 /// upper quartile (75th percentile), and maximum.
 ///
 /// Percentiles are always one of the values in the image. The nearest value to a given partition
-/// is used, rather than interpolate as classically done.
+/// is used, rather than interpolate as classically done. NaN values are ignored.
 ///
 /// If `mask` is not forged, all input pixels are considered. In case of a tensor
 /// image, returns the maximum and minimum sample values. In case of a complex
@@ -560,7 +572,7 @@ DIP_DEFINE_PROJECTION_FUNCTIONS( MinimumAbs )
 /// ```
 ///
 /// Note that the sample nearest the partition is picked, values are not interpolated if the partition falls in
-/// between samples.
+/// between samples. NaN values are ignored.
 ///
 /// For tensor images, the result is computed for each element independently. Input must be not complex.
 ///
@@ -599,6 +611,9 @@ DIP_NODISCARD inline Image Percentile( Image::View const& in, dfloat percentile 
 /// ```cpp
 /// dip::Median( img ).As< double >();
 /// ```
+///
+/// Note that the sample nearest the median is picked, values are not interpolated if there is an even number of
+/// pixels. NaN values are ignored.
 ///
 /// For tensor images, the result is computed for each element independently. Input must be not complex.
 ///
@@ -727,9 +742,9 @@ DIP_NODISCARD inline Image PositionMinimum( Image const& in, Image const& mask =
 ///
 /// If `mask` is forged, only those pixels selected by the mask image are used.
 ///
-/// `percentile` must be between 0.0 and 100.0.
+/// `percentile` must be between 0.0 and 100.0. NaN values are ignored.
 ///
-/// If `mode` is `"first"`, the first percentile is found, in linear index order.
+/// If `mode` is `"first"`, the first pixel with the percentile value is found, in linear index order.
 /// If it is `"last"`, the last one is found.
 ///
 /// For tensor images, the result is computed for each element independently. Input must be not complex.
@@ -753,7 +768,9 @@ DIP_NODISCARD inline Image PositionPercentile( Image const& in, Image const& mas
 ///
 /// If `mask` is forged, only those pixels selected by the mask image are used.
 ///
-/// If `mode` is `"first"`, the first percentile is found, in linear index order.
+/// NaN values are ignored.
+///
+/// If `mode` is `"first"`, the first pixel with the median value is found, in linear index order.
 /// If it is `"last"`, the last one is found.
 ///
 /// For tensor images, the result is computed for each element independently. Input must be not complex.

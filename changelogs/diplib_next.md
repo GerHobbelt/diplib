@@ -24,6 +24,12 @@ date: 2020-00-00
 - Added the `"sRGBA"` color space. Converting from it simply discards the alpha channel. It is intended to allow
   4-channel PNG files to be interpreted correctly.
 
+- Added `dip::AlphaBlend()`, `dip::AlphaMask()` and `dip::ApplyAlphaChannel()`.
+
+- Added `dip::ContainsNotANumber()`, `dip::ContainsInfinity()` and `dip::ContainsNonFiniteValue()`, which are
+  shortcuts to (and potentially faster than) `dip::Any(dip::IsNotANumber(...)).As<bool>()`,
+  `dip::Any(dip::IsInfinite(...)).As<bool>()` and `dip::ContainsNotANumber(...) || dip::ContainsInfinity(...)`.
+
 ### Changed functionality
 
 - All functions that compute a percentile (`dip::Percentile()`, `dip::PercentilePosition()`,
@@ -57,6 +63,9 @@ date: 2020-00-00
 - `dip::ThinPlateSpline` functions now check their input, so that this tool can be used in other contexts outside
   `dip::WarpControlPoints()`. A new function `dip::ThinPlateSpline::EvaluateUnsafe()` provides the old unchecked,
   slightly faster evaluation. `dip::ThinPlateSpline::Evaluate()` is now marked `const`.
+
+- `dip::Percentile()`, `dip::PositionPercentile()` and `dip::Quartiles()` ignore NaN values. Note that `dip::Median()`
+  and `dip::PositionMedian()` are simple interfaces to the percentile functions, and therefore now also ignore NaN values.
 
 ### Bug fixes
 

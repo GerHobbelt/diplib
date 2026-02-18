@@ -17,6 +17,7 @@
 
 #include "diplib/statistics.h"
 
+#include <cmath>
 #include <memory>
 #include <limits>
 #include <numeric>
@@ -120,12 +121,12 @@ bool ContainsValue( Image const& in, Image const& mask, bool f( TPI ) ) {
 
 template< typename TPI >
 bool ContainsNaN( Image const& in, Image const& mask ) {
-   return ContainsValue< TPI >( in, mask, std::isnan );
+   return ContainsValue< TPI >( in, mask, []( TPI v ){ return !!std::isnan( v ); } ); // double negation to ensure boolean value, some std libs are broken!?
 }
 
 template< typename TPI >
 bool ContainsInf( Image const& in, Image const& mask ) {
-   return ContainsValue< TPI >( in, mask, std::isinf );
+   return ContainsValue< TPI >( in, mask, []( TPI v ){ return !!std::isinf( v ); } ); // double negation to ensure boolean value, some std libs are broken!?
 }
 
 template< typename TPI >

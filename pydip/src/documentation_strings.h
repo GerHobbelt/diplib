@@ -55,6 +55,7 @@ constexpr char const* dml·GetImageArray·mxArray·CP = "Convert a cell array of
 constexpr char const* dml·MatlabInterface = "This class is the `dip::ExternalInterface` for the *MATLAB* interface.";
 constexpr char const* dml·MatlabInterface·AllocateData·void·PL·dip·DataType··dip·UnsignedArray·CL·dip·IntegerArray·L·dip·Tensor·CL·dip·sint·L = "This function overrides `dip::ExternalInterface::AllocateData`.";
 constexpr char const* dml·MatlabInterface·NewImage = "Constructs a `dip::Image` object with the external interface set so that, when\nforged, a *MATLAB* `mxArray` will be allocated to hold the samples.";
+constexpr char const* dml·MatlabInterface·Name·C = "Overriding the `Name` function allows the user to find out what the external\ninterface attached to an image is.";
 constexpr char const* dml·GetArrayAsArray·dip·Image·CL·bool· = "Find the `mxArray` that holds the data for the `dip::Image` `img`.";
 constexpr char const* dml·GetArray·dip·Image·CL·bool· = "Find the `mxArray` that holds the data for the `dip::Image` `img`, and create\na *MATLAB* `dip_image` object around it.";
 constexpr char const* dml·GetKernel·T·int··mxArray·CPA·int·L·dip·uint· = "Gets a structuring element or kernel from the input argument(s) at `index`,\nand `index+1`. `index` is updated to point to the next unused input argument.";
@@ -67,6 +68,7 @@ constexpr char const* dip_opencv·CopyDipToMat·dip·Image·CL = "Creates an *Op
 constexpr char const* dip_opencv·ExternalInterface = "This class is the `dip::ExternalInterface` for the *OpenCV* interface.";
 constexpr char const* dip_opencv·ExternalInterface·GetMat·dip·Image·CL = "Returns the *OpenCV* `cv::Mat` that holds the data for the `dip::Image` `img`.";
 constexpr char const* dip_opencv·ExternalInterface·NewImage = "Constructs a `dip::Image` object with the external interface set so that, when\nforged, a *OpenCV* `cv::Mat` will be allocated to hold the samples.";
+constexpr char const* dip_opencv·ExternalInterface·Name·C = "Overriding the `Name` function allows the user to find out what the external\ninterface attached to an image is.";
 constexpr char const* dip_opencv·FixBinaryImageForDip·dip·Image·L = "Fixes the binary image `img` to match expectations of *DIPlib* (i.e. only the\nbottom bit is used).";
 constexpr char const* dip_opencv·FixBinaryImageForOpenCv·dip·Image·L = "Fixes the binary image `img` to match expectations of *OpenCV* (i.e. all bits\nhave the same value).";
 constexpr char const* dip_vigra = "The `dip_vigra` namespace contains the interface between *Vigra* and *DIPlib*.";
@@ -383,10 +385,12 @@ constexpr char const* dip·DataSegment = "A `dip::Image` holds a shared pointer 
 constexpr char const* dip·NonOwnedRefToDataSegment·void·P = "This function converts a pointer to a `dip::DataSegment` that does not own the\ndata pointed to.";
 constexpr char const* dip·NonOwnedRefToDataSegment·void·CP = "This function converts a pointer to a `dip::DataSegment` that does not own the\ndata pointed to.";
 constexpr char const* dip·ExternalInterface = "Support for external interfaces.";
-constexpr char const* dip·ExternalInterface·AllocateData·void·PL·dip·DataType··UnsignedArray·CL·IntegerArray·L·dip·Tensor·CL·dip·sint·L = "Allocates the data for an image. The function is required to set `strides`,";
+constexpr char const* dip·ExternalInterface·AllocateData·void·PL·dip·DataType··UnsignedArray·CL·IntegerArray·L·dip·Tensor·CL·dip·sint·L = "Allocates the data for an image.";
+constexpr char const* dip·ExternalInterface·Name·C = "Overriding the `Name` function allows the user to find out what the external\ninterface attached to an image is.";
 constexpr char const* dip·AlignedAllocInterface = "`dip::ExternalInterface` that allocates aligned data.";
 constexpr char const* dip·AlignedAllocInterface·AllocateData·void·PL·dip·DataType··UnsignedArray·CL·IntegerArray·L·dip·Tensor·CL·dip·sint·L = "Called by `dip::Image::Forge`.";
 constexpr char const* dip·AlignedAllocInterface·GetInstance·T = "Singleton interface, templated in the `alignment` parameter. Only one instance\nis needed for each distinct alignment. `alignment` is in bytes.";
+constexpr char const* dip·AlignedAllocInterface·Name·C = "Overriding the `Name` function.";
 constexpr char const* dip·CoordinatesComputer = "Computes pixel coordinates based on an index or offset.";
 constexpr char const* dip·IsOnEdge·UnsignedArray·CL·UnsignedArray·CL·dip·uint· = "Determines whether the pixel at `coords` is on the edge of an image of size\n`sizes`.";
 constexpr char const* dip·ImageArray = "An array of images";
@@ -605,7 +609,7 @@ constexpr char const* dip·Image·operatoreq·Pixel·CL = "Sets all pixels in th
 constexpr char const* dip·Image·operatoreq·Sample·CL = "Sets all samples in the image to the value `sample`.";
 constexpr char const* dip·Image·As·T·C = "Returns the value of the first sample in the first pixel in the image as the\ngiven numeric type.";
 constexpr char const* dip·Image·operator_FloatArray·C = "Returns a FloatArray containing the sample values of the first pixel in the\nimage. For a complex-valued image, the modulus (absolute value) is returned.";
-constexpr char const* dip·Image·Mask·dip·Image·CL = "Sets all pixels not in `mask` to zero. `img.Mask(mask)` is equivalent to\n`img.At(~mask).Fill(0)`, but without creating an intermediate copy of `mask`.\nCan also be expressed as `img *= mask`.";
+constexpr char const* dip·Image·Mask·dip·Image·CL = "Sets all pixels not in `mask` to zero. `img.Mask(mask)` is equivalent to\n`img.At(~mask).Fill(0)`, but without creating an intermediate copy of `mask`.\nCan also be expressed as `img *= mask`, unless `img` contains non-finite\nvalues.";
 constexpr char const* dip·Image·CopyDataToNewDataSegment = "Allocates a new data segment and copies the data over. The image will be the\nsame as before, but have Normal strides and not share data with another image.";
 constexpr char const* dip·Image·Sample = "A sample represents a single numeric value in an image, see Image\nrepresentation.";
 constexpr char const* dip·Image·Sample·Sample·dip·DataType· = "Construct a new `Sample` by giving the data type. Initialized to 0.";
@@ -781,7 +785,7 @@ constexpr char const* dip·operatorminus·Image·Pixel·CL = "Unary operator, el
 constexpr char const* dip·operatorneg·Image·Pixel·CL = "Bit-wise unary operator operator.";
 constexpr char const* dip·operatornot·Image·Pixel·CL = "Boolean unary operator, element-wise.";
 constexpr char const* dip·operatoreqeq·Image·Pixel·CL·Image·Pixel·CL = "Comparison operator, can only be true if the two pixels have compatible number\nof tensor elements.";
-constexpr char const* dip·operatornoteq·T·Image·Pixel·CL·T·CL = "Comparison operator, equivalent to `!(lhs==rhs)`.";
+constexpr char const* dip·operatornoteq·Image·Pixel·CL·Image·Pixel·CL = "Comparison operator, equivalent to `!(lhs==rhs)`.";
 constexpr char const* dip·operatorlt·Image·Pixel·CL·Image·Pixel·CL = "Comparison operator, can only be true if the two pixels have compatible number\nof tensor elements.";
 constexpr char const* dip·operatorgt·Image·Pixel·CL·Image·Pixel·CL = "Comparison operator, can only be true if the two pixels have compatible number\nof tensor elements.";
 constexpr char const* dip·operatorlteq·Image·Pixel·CL·Image·Pixel·CL = "Comparison operator, can only be true if the two pixels have compatible number\nof tensor elements.";

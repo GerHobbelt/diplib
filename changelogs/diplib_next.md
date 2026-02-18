@@ -8,6 +8,9 @@ date: 2020-00-00
 
 ### New functionality
 
+- Added a `"antisym reflect"` (`dip::BoundaryCondition::ANTISYMMETRIC_REFLECT`) boundary condition. It is similar to
+  `"asym mirror"`, but ensures the derivative is constant at the image boundary.
+
 ### Changed functionality
 
 - The `"label"` color map produced by `dip::ColorMapLut()` and used by `dip::ApplyColorMap()` now has 60 unique colors,
@@ -34,10 +37,20 @@ date: 2020-00-00
 - The low-level B-spline interpolation function had a bug that could sometimes cause the program to crash.
   See [issue #212](https://github.com/DIPlib/diplib/issues/212).
 
-- `dip::Rotation()` is bugged when selecting the `"periodic"` boundary condition. It now throws an exception if this
+- `dip::Rotation()` has a bug if the `"periodic"` boundary condition is given. It now throws an exception if this
   boundary condition is used, rather than potentially crashing the program.
 
+- The numeric function `dip::modulo()` didn't handle all cases correctly.
+
+- `operator%()` and the unary `operator-()` for `dip::Image::Pixel` inputs threw a "data type not supported" exception
+  for single-precision float pixels.
+
+- `dip::ReadPixelWithBoundaryCondition()` didn't implement the boundary conditions exactly the same way as all other
+  functions in this library, it now produces the exact same values for the modes that it supports.
+
 ### Updated dependencies
+
+- Updated LibTIFF to version 4.7.1.
 
 ### Build changes
 

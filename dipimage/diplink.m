@@ -47,6 +47,7 @@ if nargin == 0
    end
    action = 'on';
 elseif nargin == 1
+   arg1 = string2char(arg1);
    if ischar(arg1)
       fig = get(0,'CurrentFigure');
       if isempty(fig)
@@ -76,7 +77,7 @@ else
    catch
       error('Argument must be a valid figure handle.')
    end
-   if ischar(arg2) && any(strcmpi(arg2,{'on','off','toggle'}))
+   if any(strcmpi(arg2,{'on','off','toggle'}))
       action = lower(arg2);
    elseif isempty(arg2)
       action = 'on';
@@ -86,21 +87,22 @@ else
    end
 end
 tag = get(fig,'Tag');
-if strncmp(tag,'DIP_Image_2D',12) || strncmp(tag,'DIP_Image_3D',12) || strncmp(tag,'DIP_Image_4D',12)
-   udata = get(fig,'UserData');
-   switch (action)
-   case 'toggle'
-      if isempty(udata.linkdisplay)
-         makeDIPlinkObj(fig,udata,list);
-      else
-         deleteDIPlinkObj(fig,udata);
-      end
-   case 'on'
+if ~strncmp(tag,'DIP_Image_2D',12) && ~strncmp(tag,'DIP_Image_3D',12) && ~strncmp(tag,'DIP_Image_4D',12)
+   error('Window not a 2D, 3D or 4D DIPimage display')
+end
+udata = get(fig,'UserData');
+switch (action)
+case 'toggle'
+   if isempty(udata.linkdisplay)
       makeDIPlinkObj(fig,udata,list);
-   case 'off'
-      if ~isempty(udata.linkdisplay)
-        deleteDIPlinkObj(fig,udata)
-      end
+   else
+      deleteDIPlinkObj(fig,udata);
+   end
+case 'on'
+   makeDIPlinkObj(fig,udata,list);
+case 'off'
+   if ~isempty(udata.linkdisplay)
+     deleteDIPlinkObj(fig,udata)
    end
 end
 
@@ -113,38 +115,27 @@ tag = get(fig,'Tag');
 nD = tag(11);
 if isnumeric(list) && all(isnan(list))
    newlist = handleselect(['Select a ',nD,'D image display'],fig,udata.linkdisplay,[nD,'D']);
-   if ischar(newlist)
+   if ischar(newlist) % User pressed CANCEL
       return
    end
 else
-   newlist = [];
+   list = string2char(list);
+   if ischar(list)
+      list = {list};
+   end
+   newlist = zeros(size(list));
    if iscell(list)
-      jj = 1;
-      for ii=1:numel(list)
-         try
-            newlist(jj) = getfigh(list{ii});
-            jj = jj+1;
-         end
-      end
-   elseif isnumeric(list)
-      jj = 1;
-      for ii=1:numel(list)
-         try
-            newlist(jj) = getfigh(list(ii));
-            jj = jj+1;
-         end
-      end
-   elseif ischar(list)
-      try
-         newlist = getfigh(list);
-      end
+       for ii=1:numel(list)
+          newlist(ii) = getfigh(list{ii});
+       end
    else
-      return
+       for ii=1:numel(list)
+          newlist(ii) = getfigh(list(ii));
+       end
    end
    valid = strncmp(get(newlist,'Tag'),['DIP_Image_' num2str(nD) 'D'],12);
-   newlist = newlist(valid);
-   if isempty(newlist)
-      return
+   if any(~valid)
+      error('One of the windows linked to is either not a DIPimage window or not of the same dimensionality')
    end
 end
 udata.linkdisplay = newlist(:);

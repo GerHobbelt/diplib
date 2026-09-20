@@ -12,6 +12,8 @@ date: 2020-00-00
   `"asym mirror"`, but ensures the derivative is constant at the image boundary.
   See [Issue #214](https://github.com/DIPlib/diplib/issues/214).
 
+- Added `dip::Image::Pixel::ExpandTensor()`.
+
 ### Changed functionality
 
 - The `"label"` color map produced by `dip::ColorMapLut()` and used by `dip::ApplyColorMap()` now has 60 unique colors,
@@ -61,6 +63,7 @@ date: 2020-00-00
 
 ### Build changes
 
+- Suppress some warnings when building libjpeg with GCC
 
 
 
@@ -74,11 +77,29 @@ date: 2020-00-00
 
 - Added the `'exclude_out_of_bounds_values'` option to `diphist`.
 
+- In the `dipzoom` mode of the `dipshow` window, double-clicking no longer zooms to 100%. Instead,
+  the second click in the double-click repeats the action of the first click. Use shift-click to
+  zoom to 100%.
+
+- The `diplink` command no longer silently ignores erroneous window handles in its input arguments.
+  It now also accepts `string` inputs.
+
+- `dip_image/tensorfun` with the options `'isempty'`, `'islogical'`, `'isreal'`, `'ndims'` or `'prodofsize'`
+  now returns an array with one element per tensor element, instead of an array matching the tensor sizes.
+  This makes these options logically compatible with the other options (`'max'`, `'mean'`, etc.).
+
 (See also changes to *DIPlib*.)
 
 ### Bug fixes
 
-None, but see bugfixes to *DIPlib*.
+- When linking one or more windows, their zoom level is now adjusted to the controlling window.
+
+- The `dipzoom` drag interactions in `dipshow` windows now also propagate to linked windows.
+
+- All functions should now work correctly when given modern-style strings (`""`) as input, instead of the old-style
+  strings (actually char arrays, `''`). Previously, all functions implemented in M-code assumed string inputs were
+  the old-style strings, but functions implemented in MEX-files accepted both.
+
 (See also bugfixes to *DIPlib*.)
 
 ### Build and installation changes

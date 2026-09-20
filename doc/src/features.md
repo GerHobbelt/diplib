@@ -1,4 +1,4 @@
-\comment (c)2016-2024, Cris Luengo.
+\comment (c)2016-2026, Cris Luengo.
 \comment Based on original DIPlib code: (c)1995-2014, Delft University of Technology.
 
 \comment Licensed under the Apache License, Version 2.0 [the "License"];
@@ -109,6 +109,41 @@ Five values are returned:
  - 4: `MinAng`, the angle at which `Min` was obtained.
 
 The first three values are reported in physical units, but only for isotropic (square) pixels
+(otherwise the pixel sizes are ignored). The last two values are reported in radian, assuming
+isotropic pixels.
+
+\subsection size_features_CentroidDiameter CentroidDiameter
+Computes the maximum and minimum object diameter measured as a chord through the object's
+centroid. For every point on the object's boundary, the width of the object is computed as
+the distance to the boundary point diametrically opposite it (in the direction rotated by
+$\pi$), as seen from the object's centroid. The minimum and maximum of this width, taken
+over the whole boundary, are reported, together with the angle at which each was found.
+
+Note that the chain code measures work only for 2D images, and expect objects to be a single
+connected component. If multiple connected components have the same label, only the first
+connected component found for that label will be measured.
+
+Unlike \ref size_features_Feret, which is based on the object's convex hull, `CentroidDiameter`
+uses the object's full boundary. This makes it sensitive to concave defects (a chip, notch, or
+flat spot) that `Feret` cannot detect by construction: the convex hull bridges over any
+concavity, whereas a chord through the centroid can pass right through it.
+
+!!! note
+    This is related to, but distinct from, the classical "Martin diameter" of the particle
+    characterization literature, which is the chord that divides the particle's area in half
+    at a given angle. `CentroidDiameter` instead always passes through the centroid. This is
+    considerably cheaper to compute (the classical Martin diameter requires a search for the
+    area-bisecting position at each angle, rather than a single lookup), and the two measures
+    coincide for centrally symmetric shapes, but they can diverge for strongly asymmetric ones.
+
+Four values are returned:
+
+ - 0: `Max`, the maximum diameter through the centroid.
+ - 1: `Min`, the minimum diameter through the centroid.
+ - 2: `MaxAng`, the angle at which `Max` was obtained.
+ - 3: `MinAng`, the angle at which `Min` was obtained.
+
+The first two values are reported in physical units, but only for isotropic (square) pixels
 (otherwise the pixel sizes are ignored). The last two values are reported in radian, assuming
 isotropic pixels.
 
@@ -258,7 +293,7 @@ This value is reported in physical units, but only for isotropic (square) pixels
 
 \section intensity_features Intensity features
 
-\subsection intensity_features_Mass Mass
+\subsection intensity_features_Sum Sum
 The sum of the grey-value image intensities across the object.
 The `grey` image can be a tensor image, one value per tensor element (channel) is produced.
 
@@ -384,10 +419,10 @@ have the same units, else pixel sizes are ignored.
 \section grey_moments Moments of grey-value object
 
 \subsection grey_moments_GreySize GreySize
-The zero order moment of the object. Same as the \ref intensity_features_Mass feature,
-but multiplied by the physical size of a pixel. If object pixels have a value of 1, and
-background pixels have a value of 0, then this feature is the size of the grey-value
-object.
+The integral over the object, equivalent to the zero order moment.
+Same as the \ref intensity_features_Sum feature, but multiplied by the physical size of a pixel.
+If object pixels have a value of 1, and background pixels have a value of 0, then this feature
+is the size of the grey-value object.
 
 This value is reported in physical units, anisotropic pixels are taken into account.
 

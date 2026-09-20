@@ -195,6 +195,7 @@ measurement/feature_aspect_ratio_feret.h
 measurement/feature_bending_energy.h
 measurement/feature_cartesian_box.h
 measurement/feature_center.h
+measurement/feature_centroid_diameter.h
 measurement/feature_circularity.h
 measurement/feature_common_stuff.h
 measurement/feature_convex_area.h
@@ -215,7 +216,6 @@ measurement/feature_grey_mu.h
 measurement/feature_grey_size.h
 measurement/feature_inertia.h
 measurement/feature_major_axes.h
-measurement/feature_mass.h
 measurement/feature_max_pos.h
 measurement/feature_max_val.h
 measurement/feature_maximum.h
@@ -234,6 +234,7 @@ measurement/feature_solid_area.h
 measurement/feature_solidity.h
 measurement/feature_statistics.h
 measurement/feature_stdandard_deviation.h
+measurement/feature_sum.h
 measurement/feature_surface_area.cpp
 measurement/feature_surface_area.h
 measurement/image_chain_code.cpp

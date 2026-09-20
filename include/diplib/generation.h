@@ -1031,6 +1031,8 @@ DIP_NODISCARD inline Image CreateRandomGrid(
 /// The ramp function increases along dimension `dimension`, and is
 /// equivalent to the cartesian coordinate for dimension `dimension`. `dimension` must be
 /// one of the dimensions of `out`. `out` must be forged, scalar, and of a real type.
+///
+/// By default, the origin is in the middle of the image.
 /// See \ref dip::FillCoordinates for the meaning of `mode`.
 DIP_EXPORT void FillRamp( Image& out, dip::uint dimension, StringSet const& mode = {} );
 
@@ -1043,6 +1045,7 @@ DIP_EXPORT void FillRamp( Image& out, dip::uint dimension, StringSet const& mode
 /// for `dimension` will be \ref singleton_expansion "expanded singleton dimensions". That is, the
 /// output image only stores `sizes[dimension]` pixels.
 ///
+/// By default, the origin is in the middle of the image.
 /// See \ref dip::FillCoordinates for the meaning of `mode`.
 inline void CreateRamp(
       Image& out,
@@ -1070,9 +1073,12 @@ DIP_NODISCARD inline Image CreateRamp(
 
 /// \brief Fills an image with a ramp function that increases along the x-axis.
 ///
-/// The ramp function is equivalent to the cartesian coordinate for the x-axis.
-/// `out` must be forged, scalar, and of a real type.
+/// The ramp function increases along the x-axis, and is equivalent to the cartesian coordinate
+/// for the x-axis.
+/// By default, the origin is in the middle of the image.
 /// See \ref dip::FillCoordinates for the meaning of `mode`.
+///
+/// `out` must be forged, scalar, and of a real type.
 inline void FillXCoordinate( Image& out, StringSet const& mode = {} ) {
    DIP_STACK_TRACE_THIS( FillRamp( out, 0, mode ));
 }
@@ -1081,12 +1087,12 @@ inline void FillXCoordinate( Image& out, StringSet const& mode = {} ) {
 ///
 /// The ramp function increases along the x-axis, and is equivalent to the cartesian coordinate
 /// for the x-axis.
+/// By default, the origin is in the middle of the image.
+/// See \ref dip::FillCoordinates for the meaning of `mode`.
 ///
 /// `out` will be of size `sizes`, scalar, and of type \ref dip::DT_SFLOAT. All dimensions except
 /// for `dimension` will be \ref singleton_expansion "expanded singleton dimensions". That is, the
 /// output image only stores `sizes[dimension]` pixels.
-///
-/// See \ref dip::FillCoordinates for the meaning of `mode`.
 inline void CreateXCoordinate( Image& out, UnsignedArray const& sizes, StringSet const& mode = {} ) {
    DIP_STACK_TRACE_THIS( CreateRamp( out, sizes, 0, mode ));
 }
@@ -1098,9 +1104,12 @@ DIP_NODISCARD inline Image CreateXCoordinate( UnsignedArray const& sizes, String
 
 /// \brief Fills an image with a ramp function that increases along the y-axis.
 ///
-/// The ramp function is equivalent to the cartesian coordinate for the y-axis.
-/// `out` must be forged, scalar, of a real type, and have at least two dimensions.
+/// The ramp function increases along the y-axis, and is equivalent to the cartesian coordinate
+/// for the y-axis.
+/// By default, the origin is in the middle of the image.
 /// See \ref dip::FillCoordinates for the meaning of `mode`.
+///
+/// `out` must be forged, scalar, of a real type, and have at least two dimensions.
 inline void FillYCoordinate( Image& out, StringSet const& mode = {} ) {
    DIP_STACK_TRACE_THIS( FillRamp( out, 1, mode ));
 }
@@ -1108,13 +1117,14 @@ inline void FillYCoordinate( Image& out, StringSet const& mode = {} ) {
 /// \brief Creates a ramp function image.
 ///
 /// The ramp function increases along the y-axis, and is equivalent to the cartesian coordinate
-/// for the y-axis. `size` must have at least two elements.
+/// for the y-axis.
+/// By default, the origin is in the middle of the image.
+/// See \ref dip::FillCoordinates for the meaning of `mode`.
 ///
+/// `size` must have at least two elements.
 /// `out` will be of size `sizes`, scalar, and of type \ref dip::DT_SFLOAT. All dimensions except
 /// for `dimension` will be \ref singleton_expansion "expanded singleton dimensions". That is, the
 /// output image only stores `sizes[dimension]` pixels.
-///
-/// See \ref dip::FillCoordinates for the meaning of `mode`.
 inline void CreateYCoordinate( Image& out, UnsignedArray const& sizes, StringSet const& mode = {} ) {
    DIP_STACK_TRACE_THIS( CreateRamp( out, sizes, 1, mode ));
 }
@@ -1126,9 +1136,12 @@ DIP_NODISCARD inline Image CreateYCoordinate( UnsignedArray const& sizes, String
 
 /// \brief Fills an image with a ramp function that increases along the z-axis.
 ///
-/// The ramp function is equivalent to the cartesian coordinate for the z-axis.
-/// `out` must be forged, scalar, of a real type, and have at least three dimensions.
+/// The ramp function increases along the z-axis, and is equivalent to the cartesian coordinate
+/// for the z-axis. `sizes` must have at least three elements.
+/// By default, the origin is in the middle of the image.
 /// See \ref dip::FillCoordinates for the meaning of `mode`.
+///
+/// `out` must be forged, scalar, of a real type, and have at least three dimensions.
 inline void FillZCoordinate( Image& out, StringSet const& mode = {} ) {
    DIP_STACK_TRACE_THIS( FillRamp( out, 2, mode ));
 }
@@ -1137,12 +1150,12 @@ inline void FillZCoordinate( Image& out, StringSet const& mode = {} ) {
 ///
 /// The ramp function increases along the z-axis, and is equivalent to the cartesian coordinate
 /// for the z-axis. `sizes` must have at least three elements.
+/// By default, the origin is in the middle of the image.
+/// See \ref dip::FillCoordinates for the meaning of `mode`.
 ///
 /// `out` will be of size `sizes`, scalar, and of type \ref dip::DT_SFLOAT. All dimensions except
 /// for `dimension` will be \ref singleton_expansion "expanded singleton dimensions". That is, the
 /// output image only stores `sizes[dimension]` pixels.
-///
-/// See \ref dip::FillCoordinates for the meaning of `mode`.
 inline void CreateZCoordinate( Image& out, UnsignedArray const& sizes, StringSet const& mode = {} ) {
    DIP_STACK_TRACE_THIS( CreateRamp( out, sizes, 2, mode ));
 }
@@ -1157,16 +1170,20 @@ DIP_NODISCARD inline Image CreateZCoordinate( UnsignedArray const& sizes, String
 ///
 /// The distance function is equivalent to the radius component of the polar or spherical
 /// coordinate system.
-/// `out` must be forged, scalar, and of a real type.
+/// By default, the origin is in the middle of the image.
 /// See \ref dip::FillCoordinates for the meaning of `mode`.
+///
+/// `out` must be forged, scalar, and of a real type.
 DIP_EXPORT void FillRadiusCoordinate( Image& out, StringSet const& mode = {} );
 
 /// \brief Creates an image filled with the distance to the origin.
 ///
 /// The distance function is equivalent to the radius component of the polar or spherical
 /// coordinate system.
-/// `out` will be of size `sizes`, scalar, and of type \ref dip::DT_SFLOAT.
+/// By default, the origin is in the middle of the image.
 /// See \ref dip::FillCoordinates for the meaning of `mode`.
+///
+/// `out` will be of size `sizes`, scalar, and of type \ref dip::DT_SFLOAT.
 inline void CreateRadiusCoordinate( Image& out, UnsignedArray const& sizes, StringSet const& mode = {} ) {
    DIP_STACK_TRACE_THIS( out.ReForge( sizes, 1, DT_SFLOAT, Option::AcceptDataTypeChange::DO_ALLOW ));
    DIP_STACK_TRACE_THIS( FillRadiusCoordinate( out, mode ));
@@ -1180,18 +1197,22 @@ DIP_NODISCARD inline Image CreateRadiusCoordinate( UnsignedArray const& sizes, S
 
 /// \brief Fills an image with the square distance to the origin.
 ///
-/// The distance function is equivalent to the radius component of the polar or spherical
+/// The distance function is equivalent to the square of the radius component of the polar or spherical
 /// coordinate system.
-/// `out` must be forged, scalar, and of a real type.
+/// By default, the origin is in the middle of the image.
 /// See \ref dip::FillCoordinates for the meaning of `mode`.
+///
+/// `out` must be forged, scalar, and of a real type.
 DIP_EXPORT void FillRadiusSquareCoordinate( Image& out, StringSet const& mode = {} );
 
 /// \brief Creates an image filled with the square distance to the origin.
 ///
-/// The distance function is equivalent to the radius component of the polar or spherical
+/// The distance function is equivalent to the square of the radius component of the polar or spherical
 /// coordinate system.
-/// `out` will be of size `sizes`, scalar, and of type \ref dip::DT_SFLOAT.
+/// By default, the origin is in the middle of the image.
 /// See \ref dip::FillCoordinates for the meaning of `mode`.
+///
+/// `out` will be of size `sizes`, scalar, and of type \ref dip::DT_SFLOAT.
 inline void CreateRadiusSquareCoordinate( Image& out, UnsignedArray const& sizes, StringSet const& mode = {} ) {
    DIP_STACK_TRACE_THIS( out.ReForge( sizes, 1, DT_SFLOAT, Option::AcceptDataTypeChange::DO_ALLOW ));
    DIP_STACK_TRACE_THIS( FillRadiusSquareCoordinate( out, mode ));
@@ -1207,16 +1228,20 @@ DIP_NODISCARD inline Image CreateRadiusSquareCoordinate( UnsignedArray const& si
 ///
 /// The angle function is equivalent to the phi component of the polar or spherical
 /// coordinate system.
-/// `out` must be forged, scalar, of a real type, and have two or three dimensions.
+/// By default, the origin is in the middle of the image.
 /// See \ref dip::FillCoordinates for the meaning of `mode`.
+///
+/// `out` must be forged, scalar, of a real type, and have two or three dimensions.
 DIP_EXPORT void FillPhiCoordinate( Image& out, StringSet const& mode = {} );
 
 /// \brief Creates an image filled with the angle to the x-axis within the x-y plane.
 ///
 /// The angle function is equivalent to the phi component of the polar or spherical
 /// coordinate system. `size` must have two or three elements.
-/// `out` will be of size `sizes`, scalar, and of type \ref dip::DT_SFLOAT.
+/// By default, the origin is in the middle of the image.
 /// See \ref dip::FillCoordinates for the meaning of `mode`.
+///
+/// `out` will be of size `sizes`, scalar, and of type \ref dip::DT_SFLOAT.
 inline void CreatePhiCoordinate( Image& out, UnsignedArray const& sizes, StringSet const& mode = {} ) {
    DIP_STACK_TRACE_THIS( out.ReForge( sizes, 1, DT_SFLOAT, Option::AcceptDataTypeChange::DO_ALLOW ));
    DIP_STACK_TRACE_THIS( FillPhiCoordinate( out, mode ));
@@ -1231,16 +1256,20 @@ DIP_NODISCARD inline Image CreatePhiCoordinate( UnsignedArray const& sizes, Stri
 /// \brief Fills an image with the angle to the z-axis.
 ///
 /// The angle function is equivalent to the theta component of the spherical coordinate system.
-/// `out` must be forged, scalar, of a real type, and have three dimensions.
+/// By default, the origin is in the middle of the image.
 /// See \ref dip::FillCoordinates for the meaning of `mode`.
+///
+/// `out` must be forged, scalar, of a real type, and have three dimensions.
 DIP_EXPORT void FillThetaCoordinate( Image& out, StringSet const& mode = {} );
 
 /// \brief Creates an image filled with the angle to the z-axis.
 ///
 /// The angle function is equivalent to the theta component of the spherical coordinate
 /// system. `size` must have three elements.
-/// `out` will be of size `sizes`, scalar, and of type \ref dip::DT_SFLOAT.
+/// By default, the origin is in the middle of the image.
 /// See \ref dip::FillCoordinates for the meaning of `mode`.
+///
+/// `out` will be of size `sizes`, scalar, and of type \ref dip::DT_SFLOAT.
 inline void CreateThetaCoordinate( Image& out, UnsignedArray const& sizes, StringSet const& mode = {} ) {
    DIP_STACK_TRACE_THIS( out.ReForge( sizes, 1, DT_SFLOAT, Option::AcceptDataTypeChange::DO_ALLOW ));
    DIP_STACK_TRACE_THIS( FillThetaCoordinate( out, mode ));
@@ -1274,8 +1303,8 @@ DIP_NODISCARD inline Image CreateThetaCoordinate( UnsignedArray const& sizes, St
 /// - `"left"`: The origin is on the pixel left of the center (at integer division result of
 ///   `(size-1)/2`).
 /// - `"true"`: The origin is halfway the first and last pixel, in between pixels if necessary
-///   (at floating-point division result of `size/2`).
-/// - `"corner"`: The origin is on the first pixel.
+///   (at floating-point division result of `(size-1)/2`).
+/// - `"corner"`: The origin is on the first pixel (top-left in 2D).
 /// - `"frequency"`: The coordinates used are as for the Fourier transform.
 ///   The origin is as for `"right"`, and the coordinates are in the range [0.5,0.5).
 ///

@@ -14,6 +14,11 @@ date: 2020-00-00
 
 - Added `dip::Image::Pixel::ExpandTensor()`.
 
+- TIFF files can now be read and written using ZSTD compression, if configured during build, using the *zstd* library
+  on the system (i.e. is not part of the DIPlib source distribution, and is not enabled by default).
+
+- Added `dip::Dice`, which does the opposite of `dip::Tile`.
+
 ### Changed functionality
 
 - The `"label"` color map produced by `dip::ColorMapLut()` and used by `dip::ApplyColorMap()` now has 60 unique colors,
@@ -28,6 +33,14 @@ date: 2020-00-00
 
 - `dip::ExternalInterface` has a new virtual member function `Name()` that derived classes can overload to give
   themselves a name.
+
+- `dip::Canny` has a new `boundaryCondition` argument, that is passed through when computing the gradient.
+
+- `dip::Tile` has relaxed requirements for input image sizes. It is now possible to tile images of different sizes
+  as long as the images on the same row have the same height, and images on the same column have the same width.
+
+- The `dipview` and `dipviewjava` command-line tools will now first attempt to read a file as if it were a multi-page
+  TIFF file where the pages compose a 3D image. If it fails, it proceeds as it did previously.
 
 ### Bug fixes
 
@@ -119,6 +132,10 @@ date: 2020-00-00
 - Regular indexing (such as `img[10:40:2, :]`), which creates a new image that shares data with the original image,
   now has the output image protected. This allows the user to write into the sub-image with confidence.
   See [issue #204](https://github.com/DIPlib/diplib/issues/204).
+
+- The Python version of the `dipview` utility is changed in the same way as the C++ version: The tool will first attempt
+  to read a file as if it were a multi-page TIFF file where the pages compose a 3D image. If it fails, it proceeds
+  as it did previously.
 
 (See also changes to *DIPlib*.)
 

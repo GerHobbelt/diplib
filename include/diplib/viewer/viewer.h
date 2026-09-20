@@ -1,5 +1,6 @@
 /*
  * (c)2017, Wouter Caarls
+ * (c)2024-2026, Cris Luengo
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +19,11 @@
 #define DIP_VIEWER_H
 
 #include <algorithm>
+#include <array>
 #include <cmath>
-#include <limits>
 #include <mutex>
 #include <ostream>
 #include <sstream>
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -47,17 +47,48 @@ using FloatRangeArray = std::vector< FloatRange >;
 
 /// \brief Model that determines the \ref SliceViewer's behavior
 struct DIPVIEWER_NO_EXPORT ViewingOptions {
+
+   //
+   // NOTE!!!
+   // These first four enums must match 1:1 with the corresponding string arrays in
+   // viewer/src/viewer.cpp and in include/diplib/viewer/control.h
+   //
+
    /// \brief Complex-to-real mapping options
    enum class ComplexToReal : uint8 { Real, Imaginary, Magnitude, Phase };
+   /// \brief Translate a string to an enum for the complex-to-real mapping options
+   DIPVIEWER_EXPORT static ComplexToReal TranslateComplexToRealString( String const& string );
+   /// \brief Translate an enum for the complex-to-real mapping options to a string
+   DIPVIEWER_EXPORT static String ComplexToRealAsString( ComplexToReal value );
+   /// \brief Translate an enum for the complex-to-real mapping options to a longer description string
+   DIPVIEWER_EXPORT static String ComplexToRealDescription( ComplexToReal value );
 
    /// \brief Grey-value mapping options
-   enum class Mapping : uint8 { ZeroOne, Angle, Normal, Linear, Symmetric, Logarithmic };
+   enum class Mapping : uint8 { ZeroOne, Angle, Normal, Modulo, Linear, Symmetric, Logarithmic };
+   /// \brief Translate a string to an enum for the grey-value mapping options
+   DIPVIEWER_EXPORT static Mapping TranslateMappingString( String const& string );
+   /// \brief Translate an enum for the grey-value mapping options to a string
+   DIPVIEWER_EXPORT static String MappingAsString( Mapping value );
+   /// \brief Translate an enum for the grey-value mapping options to a longer description string
+   DIPVIEWER_EXPORT static String MappingDescription( Mapping value );
 
    /// \brief Slice projection options
    enum class Projection : uint8 { None, Min, Mean, Max };
+   /// \brief Translate a string to an enum for the slice projection options
+   DIPVIEWER_EXPORT static Projection TranslateProjectionString( String const& string );
+   /// \brief Translate an enum for the slice projection options to a string
+   DIPVIEWER_EXPORT static String ProjectionAsString( Projection value );
+   /// \brief Translate an enum for the slice projection options to a longer description string
+   DIPVIEWER_EXPORT static String ProjectionDescription( Projection value );
 
    /// \brief Grey-value to color mapping options
    enum class LookupTable : uint8 { ColorSpace, RGB, Grey, Sequential, Divergent, Cyclic, Label };
+   /// \brief Translate a string to an enum for the grey-value to color mapping options
+   DIPVIEWER_EXPORT static LookupTable TranslateLookupTableString( String const& string );
+   /// \brief Translate an enum for the grey-value to color mapping options to a string
+   DIPVIEWER_EXPORT static String LookupTableAsString( LookupTable value );
+   /// \brief Translate an enum for the grey-value to color mapping options to a longer description string
+   DIPVIEWER_EXPORT static String LookupTableDescription( LookupTable value );
 
    /// \brief Defines which view (parts) need to be recalculated
    enum class Diff : uint8 { None, Draw, Place, Mapping, Projection, Complex };
@@ -76,6 +107,7 @@ struct DIPVIEWER_NO_EXPORT ViewingOptions {
    FloatRangeArray tensor_range_; ///< value range per tensor.
    FloatRange mapping_range_; ///< mapped value range (colorbar limits).
    Mapping mapping_; ///< Grey-value mapping options, sets mapping_range_.
+   bool auto_mapping_; ///< Automatically adapt mapping_range_ to histogram limits when image changes.
 
    // Color
    dip::uint element_; ///< Tensor element to visualize.
@@ -115,6 +147,7 @@ struct DIPVIEWER_NO_EXPORT ViewingOptions {
       labels_ = "xyzw56789";
 
       // Mapping
+      auto_mapping_ = true;
       if( image.DataType().IsBinary() ) {
          mapping_ = Mapping::ZeroOne;
          mapping_range_ = { 0, 1 };
@@ -187,6 +220,9 @@ struct DIPVIEWER_NO_EXPORT ViewingOptions {
          return Diff::Mapping;
       }
       if( mapping_ != options.mapping_ ) {
+         return Diff::Mapping;
+      }
+      if( auto_mapping_ != options.auto_mapping_ ) {
          return Diff::Mapping;
       }
       if( element_ != options.element_ ) {
@@ -270,10 +306,7 @@ struct DIPVIEWER_NO_EXPORT ViewingOptions {
    /// \brief Sets automatic range based on current lookup table and mapping
    void setAutomaticRange() {
       if( lut_ == LookupTable::RGB ) {
-         FloatRange range = {
-            std::numeric_limits< dfloat >::infinity(),
-            -std::numeric_limits< dfloat >::infinity()
-         };
+         FloatRange range = { infinity, -infinity };
 
          for( dip::uint ii = 0; ii != color_elements_.size(); ++ii ) {
             if( color_elements_[ ii ] >= 0 && color_elements_[ ii ] < ( dip::sint )tensor_range_.size() ) {
@@ -300,8 +333,9 @@ struct DIPVIEWER_NO_EXPORT ViewingOptions {
       }
    }
 
-   /// \brief Sets mapping range based on mapping
+   /// \brief Sets mapping range based on mapping. Turns on automatic mapping.
    void setMappingRange( ViewingOptions::Mapping mapping ) {
+      auto_mapping_ = true;
       switch( mapping ) {
          case ViewingOptions::Mapping::ZeroOne:
             mapping_range_ = { 0, 1 };
@@ -310,6 +344,7 @@ struct DIPVIEWER_NO_EXPORT ViewingOptions {
             mapping_range_ = { -pi, pi };
             break;
          case ViewingOptions::Mapping::Normal:
+         case ViewingOptions::Mapping::Modulo:
             mapping_range_ = { 0, 255 };
             break;
          case ViewingOptions::Mapping::Linear:
@@ -322,26 +357,22 @@ struct DIPVIEWER_NO_EXPORT ViewingOptions {
 
    /// \brief Returns a textual description of the current complex-to-real mapping
    String getComplexDescription() const {
-      String names[ ] = { "real part", "imaginary part", "magnitude (abs)", "phase" };
-      return names[ ( dip::uint )complex_ ];
+      return ComplexToRealDescription( complex_ );
    }
 
    /// \brief Returns a textual description of the current grey-value mapping
    String getMappingDescription() const {
-      String names[ ] = { "unit", "angle", "normal", "linear", "symmetric around 0", "logarithmic" };
-      return names[ ( dip::uint )mapping_ ];
+      return MappingDescription( mapping_ );
    }
 
    /// \brief Returns a textual description of the current slice projection
    String getProjectionDescription() const {
-      String names[ ] = { "none (slice)", "minimum", "mean", "maximum" };
-      return names[ ( dip::uint )projection_ ];
+      return ProjectionDescription( projection_ );
    }
 
    /// \brief Returns a textual description of the current grey-value to color mapping
    String getLookupTableDescription() const {
-      String names[ ] = { "image colorspace (mapping inactive)", "ternary (RGB)", "grey-value", "perceptually linear", "divergent blue-red", "cyclic", "labels" };
-      return names[ ( dip::uint )lut_ ];
+      return LookupTableDescription( lut_ );
    }
 
    friend std::ostream& operator<<( std::ostream& os, const ViewingOptions& opt ) {
@@ -536,7 +567,12 @@ inline dfloat rangeMap( T val, dfloat offset, dfloat scale, ViewingOptions::Mapp
    if( mapping == ViewingOptions::Mapping::Logarithmic ) {
       return 255. * std::min( std::log( std::max( ( dfloat )val - offset, 1. )) * scale, 1. );
    } else {
-      return 255. * std::min( std::max( ( ( dfloat )val - offset ) * scale, 0. ), 1. );
+      dfloat scaled = ( static_cast< dfloat >( val ) - offset ) * scale * 255.0;
+      if( mapping == ViewingOptions::Mapping::Modulo ) {
+         return scaled == 0.0 ? 0.0 : ( std::fmod( scaled - 1.0, 255.0 ) + 1.0 );
+      } else {
+         return std::min( std::max( scaled, 0.0 ), 255.0 );
+      }
    }
 }
 

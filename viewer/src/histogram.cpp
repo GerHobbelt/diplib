@@ -237,6 +237,7 @@ void HistogramViewPort::motion(int button, int x, int y)
     drag_y_ = y;
 
     // Show we're not in a fixed mapping anymore
+    o.auto_mapping_ = false;
     switch (o.mapping_)
     {
       case ViewingOptions::Mapping::ZeroOne:
@@ -244,13 +245,14 @@ void HistogramViewPort::motion(int button, int x, int y)
       case ViewingOptions::Mapping::Normal:
         o.mapping_ = ViewingOptions::Mapping::Linear;
         break;
+      case ViewingOptions::Mapping::Modulo:
       case ViewingOptions::Mapping::Linear:
       case ViewingOptions::Mapping::Symmetric:
       case ViewingOptions::Mapping::Logarithmic:
         // Nothing to do
         break;
     }
-    
+
     o.status_ = "Mapping range set to [" + std::to_string(o.mapping_range_.first) + ", " + std::to_string(o.mapping_range_.second) + "]";
 
     viewer()->refresh();

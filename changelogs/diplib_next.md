@@ -74,6 +74,8 @@ date: 2020-00-00
   that the slice returned by the iterator after calling any of these functions didn't match the coordinate, and
   could point to out-of-bounds data.
 
+- Element-wise arithmetic, bitwise and comparison operators should be a bit faster now for non-scalar images.
+
 ### Updated dependencies
 
 - Updated LibTIFF to version 4.7.1.
@@ -172,6 +174,15 @@ date: 2020-00-00
 
 ### New functionality
 
+- Added the `dip::viewer::ViewingOptions::Mapping::Modulo` scaling option (shown as "MOD" in the UI). It computes
+  the scaled pixel value modulo 256, but skipping 0 (i.e. values 0-255 are unchanged, 256 maps to 1, etc.). This
+  is useful with the "labels" color map: if there are more then 255 objects, the color map will repeat correctly.
+  It is also useful to display distance mappings: turn on this mode, then scale the intensities by dragging down
+  from the top of the histogram on the right-hand side of the window.
+
+- Added a series of getter and setter functions to `dip::viewer::SliceViewer` to simplify modifying the image
+  display programatically.
+
 ### Changed functionality
 
 ### Bug fixes
@@ -180,6 +191,9 @@ date: 2020-00-00
   apparent, noticeable in a few objects getting the same color as the object with the previous ID. 
 
 - Offsets are no longer overwritten when updating the image being displayed.
+
+- When updating the image, the mapping range is only recalculated
+  automatically if it has not been manually adjusted.
 
 ### Build changes
 

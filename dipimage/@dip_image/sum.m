@@ -14,10 +14,20 @@
 %   VALUE = SUM(B,'tensor') works over the tensor elements, returning
 %   a scalar image of the same size as B.
 %
+%   WARNING:
+%   The output of SUM is a floating-point image (either single or double
+%   precision depending on the type of IN). Summing a large number of
+%   values can lead to loss of precision because of floating-point rounding
+%   errors. Do not use SUM to count set pixels in a binary image, instead
+%   use NNZ.
+%
 %   COMPATIBILITY NOTE:
 %   The behavior of SUM(B), with B a tensor image, has changed since
 %   DIPimage 2. Previously, it operated on the tensor elements, which
 %   is currently accomplished with SUM(B,'tensor').
+%
+%  This function calls the DIPlib functions <a href="https://diplib.org/diplib-docs/math_projection.html#dip-Sum-Image-CL-Image-CL-Image-L-BooleanArray-CL">dip::Sum</a> and
+%  <a href="https://diplib.org/diplib-docs/math_tensor.html#dip-SumTensorElements-Image-CL-Image-L">dip::SumTensorElements</a>.
 
 % (c)2017-2018, Cris Luengo.
 % Based on original DIPlib code: (c)1995-2014, Delft University of Technology.

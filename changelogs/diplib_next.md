@@ -24,18 +24,20 @@ date: 2020-00-00
 - The "Gravity" measurement feature now has an alias "GreyCenter". The "Size" measurement feature now has
   aliases "Area" and "Volume". The "GreySize" measurement feature now has aliases "GreyArea" and "GreyVolume".
 
-- Added an overload to `dip::ChainCode::Polygon()` that takes a gray-scale image as input, and uses interpolation
+- Added `dip::ChainCode::RefinedPolygon()` that takes a gray-scale image as input, and uses interpolation
   to produce a polygon that more accurately represents the object.
-  See [Issue #234](https://github.com/DIPlib/diplib/issues/234)
+  See [Issue #234](https://github.com/DIPlib/diplib/issues/234).
 
 - Added `dip::RefinePolygon()`, which moves the vertices of a polygon to align more precisely with the outline
   of an object.
-  See [Issue #234](https://github.com/DIPlib/diplib/issues/234)
+  See [Issue #234](https://github.com/DIPlib/diplib/issues/234).
 
 - Added `dip::SubPixelMeasurementTool`. This is similar to `dip::MeasurementTool`, but it works only on 2D
-  images for size and shape features. It uses `dip::ChainCode::Polygon()` to find a more precise outline,
-  and performs measurements on that outline.
-  See [Issue #234](https://github.com/DIPlib/diplib/issues/234)
+  images for size and shape features. It uses `dip::ChainCode::RefinedPolygon()` to find a more precise outline,
+  and performs measurements on that outline. An overload to `Measure` directly takes polygons as input. 
+  See [Issue #234](https://github.com/DIPlib/diplib/issues/234), [Issue #241](https://github.com/DIPlib/diplib/issues/241).
+
+- Added `dip::Polygon::Edges()` and `dip::Polygon::EdgeIterator`.
 
 ### Changed functionality
 

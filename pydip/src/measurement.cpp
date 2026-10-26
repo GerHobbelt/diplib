@@ -283,7 +283,7 @@ void init_measurement( py::module& m ) {
    }, "feature"_a, "parameter"_a, "value"_a, doc_strings::dip·MeasurementTool·Configure·String·CL·String·CL·dfloat··C );
    tool.def( "Measure", []( dip::Image const& label, dip::Image const& grey, dip::StringArray const& features, dip::UnsignedArray const& objectIDs, dip::uint connectivity ) {
       return measurementTool().Measure( label, grey, features, objectIDs, connectivity );
-   }, "label"_a, "grey"_a = dip::Image{}, "features"_a = dip::StringArray{ "Size" }, "objectIDs"_a = dip::StringArray{}, "connectivity"_a = 0, doc_strings::dip·MeasurementTool·Measure·Image·CL·Image·CL·StringArray··UnsignedArray·CL·dip·uint··C );
+   }, "label"_a, "grey"_a = dip::Image{}, "features"_a = dip::StringArray{ "Size" }, "objectIDs"_a = dip::UnsignedArray{}, "connectivity"_a = 0, doc_strings::dip·MeasurementTool·Measure·Image·CL·Image·CL·StringArray··UnsignedArray·CL·dip·uint··C );
    tool.def( "Features", []() {
                 auto features = measurementTool().Features();
                 std::vector< std::tuple< dip::String, dip::String >> out;
@@ -305,7 +305,10 @@ void init_measurement( py::module& m ) {
    }, "feature"_a, "parameter"_a, "value"_a, doc_strings::dip·MeasurementTool·Configure·String·CL·String·CL·dfloat··C );
    sptool.def( "Measure", []( dip::Image const& label, dip::Image const& grey, dip::StringArray const& features, dip::dfloat threshold, dip::String const& interpolation, dip::UnsignedArray const& objectIDs ) {
       return subPixelMeasurementTool().Measure( label, grey, features, threshold, interpolation, objectIDs );
-   }, "label"_a, "grey"_a = dip::Image{}, "features"_a = dip::StringArray{ "Area" }, "threshold"_a = 0, "interpolation"_a = dip::S::LINEAR, "objectIDs"_a = dip::StringArray{}, doc_strings::dip·SubPixelMeasurementTool·Measure·Image·CL·Image·CL·StringArray··dfloat··String·CL·UnsignedArray·CL·C );
+   }, "label"_a, "grey"_a = dip::Image{}, "features"_a = dip::StringArray{ "Area" }, "threshold"_a = 0, "interpolation"_a = dip::S::LINEAR, "objectIDs"_a = dip::UnsignedArray{}, doc_strings::dip·SubPixelMeasurementTool·Measure·Image·CL·Image·CL·StringArray··dfloat··String·CL·UnsignedArray·CL·C );
+   sptool.def( "Measure", []( std::vector< dip::Polygon > const& polygons, dip::StringArray const& features, dip::PixelSize const& pixelSizes, dip::UnsignedArray const& objectIDs ) {
+      return subPixelMeasurementTool().Measure( polygons, features, pixelSizes, objectIDs );
+   }, "polygons"_a, "features"_a = dip::StringArray{ "Area" }, "pixelSizes"_a = dip::PixelSize{}, "objectIDs"_a = dip::UnsignedArray{}, doc_strings::dip·SubPixelMeasurementTool·Measure·std·vectorltPolygongt·CL·StringArray··dip·PixelSize·CL·UnsignedArray·CL·C );
    sptool.def( "Features", []() {
                 auto features = subPixelMeasurementTool().Features();
                 std::vector< std::tuple< dip::String, dip::String >> out;
@@ -606,9 +609,8 @@ void init_measurement( py::module& m ) {
    chain.def( "BendingEnergy", &dip::ChainCode::BendingEnergy, doc_strings::dip·ChainCode·BendingEnergy·C );
    chain.def( "BoundingBox", &dip::ChainCode::BoundingBox, doc_strings::dip·ChainCode·BoundingBox·C );
    chain.def( "LongestRun", &dip::ChainCode::LongestRun, doc_strings::dip·ChainCode·LongestRun·C );
-   chain.def( "Polygon", py::overload_cast< dip::String const& >( &dip::ChainCode::Polygon, py::const_ ), "borderCodes"_a = dip::S::KEEP, doc_strings::dip·ChainCode·Polygon·String·CL·C );
-   chain.def( "Polygon", py::overload_cast< dip::Image const&, dip::dfloat, dip::String const& >( &dip::ChainCode::Polygon, py::const_ ), "grey"_a,
-              "threshold"_a = 0.0, "interpolation"_a = dip::S::LINEAR, doc_strings::dip·ChainCode·Polygon·Image·CL·dfloat··String·CL·C );
+   chain.def( "Polygon", &dip::ChainCode::Polygon, "borderCodes"_a = dip::S::KEEP, doc_strings::dip·ChainCode·Polygon·String·CL·C );
+   chain.def( "RefinedPolygon", &dip::ChainCode::RefinedPolygon, "grey"_a, "threshold"_a = 0.0, "interpolation"_a = dip::S::LINEAR, doc_strings::dip·ChainCode·RefinedPolygon·dip·Image·CL·dfloat··String·CL·C );
    chain.def( "Image", py::overload_cast<>( &dip::ChainCode::Image, py::const_ ), doc_strings::dip·ChainCode·Image·dip·Image·L·C );
    chain.def( "Image", py::overload_cast< dip::Image& >( &dip::ChainCode::Image, py::const_ ), "out"_a, doc_strings::dip·ChainCode·Image·dip·Image·L·C );
    chain.def( "Coordinates", &dip::ChainCode::Coordinates, doc_strings::dip·ChainCode·Coordinates·C );
